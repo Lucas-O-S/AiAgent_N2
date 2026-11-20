@@ -1,13 +1,11 @@
-"""Interface web (Gradio) para a demonstração ao vivo.
-
-    python app_gradio.py   ->  abre em http://127.0.0.1:7860
-"""
+# Interface web (Gradio) para a demonstração ao vivo.
+#
+#     python app_gradio.py   ->  abre em http://127.0.0.1:7860
 import json
-import uuid
 
 import gradio as gr
 
-from agente.grafo import construirGrafo, perguntar
+from agente.grafo import construirGrafo, novoIdConversa, perguntar
 
 AGENTE = construirGrafo()
 
@@ -19,10 +17,6 @@ EXEMPLOS = [
     "Um cliente com fibra óptica e contrato mensal vai cancelar?",
     "Classifique esta imagem de célula: está infectada por malária?",
 ]
-
-
-def novoIdConversa() -> str:
-    return f"web-{uuid.uuid4().hex[:8]}"
 
 
 def responderMensagem(mensagem, historicoChat, idConversa):
@@ -42,13 +36,13 @@ def responderMensagem(mensagem, historicoChat, idConversa):
 
 
 def iniciarNovaConversa():
-    return [], novoIdConversa(), ""
+    return [], novoIdConversa("web"), ""
 
 
 with gr.Blocks(title="Agente de churn — Telco") as interface:
     gr.Markdown("## Agente de churn — base Telco Customer Churn\n"
                 "Previsões com o modelo salvo (Naive Bayes), consultas à base e ao cartão do modelo.")
-    idConversa = gr.State(novoIdConversa)
+    idConversa = gr.State(lambda: novoIdConversa("web"))
 
     with gr.Row():
         with gr.Column(scale=3):

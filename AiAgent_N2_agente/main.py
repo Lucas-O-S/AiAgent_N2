@@ -1,18 +1,12 @@
-"""Interface de linha de comando do agente.
-
-    python main.py                       # conversa interativa (com memória)
-    python main.py "pergunta"            # um único turno
-    python main.py --mostrar-estado ...  # também imprime rota, nós visitados e resultados das ferramentas
-"""
+# Interface de linha de comando do agente.
+#
+#     python main.py                       # conversa interativa (com memória)
+#     python main.py "pergunta"            # um único turno
+#     python main.py --mostrar-estado ...  # também imprime rota, nós visitados e resultados das ferramentas
 import argparse
 import json
-import uuid
 
-from agente.grafo import construirGrafo, perguntar
-
-
-def novoIdConversa() -> str:
-    return f"cli-{uuid.uuid4().hex[:8]}"
+from agente.grafo import construirGrafo, novoIdConversa, perguntar
 
 
 def mostrarResultado(estado, mostrarDetalhes):
@@ -31,7 +25,7 @@ def executar():
     argumentos = leitorArgumentos.parse_args()
 
     agente = construirGrafo()
-    idConversa = novoIdConversa()
+    idConversa = novoIdConversa("cli")
 
     if argumentos.pergunta:
         mostrarResultado(perguntar(agente, " ".join(argumentos.pergunta), idConversa), argumentos.mostrarEstado)
@@ -46,7 +40,7 @@ def executar():
         if mensagem.lower() in ("sair", "exit", "quit"):
             break
         if mensagem.lower() == "nova":
-            idConversa = novoIdConversa()
+            idConversa = novoIdConversa("cli")
             print("(nova conversa)")
             continue
         if mensagem:

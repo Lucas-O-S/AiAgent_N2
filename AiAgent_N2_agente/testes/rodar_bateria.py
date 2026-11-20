@@ -1,21 +1,19 @@
-"""Roda a bateria de testes com o LLM configurado no .env e grava:
-- testes/resultados_bateria.csv  (uma linha por caso)
-- testes/resultados_bateria.md   (tabela + taxas de acerto, para o README/apresentação)
-
-Uso:  python testes/rodar_bateria.py
-"""
+# Roda a bateria de testes com o LLM configurado no .env e grava:
+# - testes/resultados_bateria.csv  (uma linha por caso)
+# - testes/resultados_bateria.md   (tabela + taxas de acerto, para o README/apresentação)
+#
+# Uso:  python testes/rodar_bateria.py
 import csv
 import json
 import sys
 import time
-import uuid
 from datetime import datetime
 from pathlib import Path
 
 PASTA_RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PASTA_RAIZ))
 
-from agente.grafo import construirGrafo, perguntar  # noqa: E402
+from agente.grafo import construirGrafo, novoIdConversa, perguntar  # noqa: E402
 from agente.llm import obterNomeModelo, obterProvedor  # noqa: E402
 
 # nó do grafo -> desfecho esperado em casos_teste.json
@@ -36,7 +34,7 @@ def executar():
     # as chaves de cada linha viram as colunas do CSV: mantidas como estavam
     linhas = []
     for caso in casos:
-        idConversa = f"teste-{caso['id']}-{uuid.uuid4().hex[:6]}"
+        idConversa = novoIdConversa(f"teste-{caso['id']}")
         inicio = time.perf_counter()
         try:
             for mensagem in caso["turnos"]:

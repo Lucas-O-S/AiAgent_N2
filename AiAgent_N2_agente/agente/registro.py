@@ -1,5 +1,5 @@
-"""Logs próprios: cada nó grava uma linha JSON em logs/execucoes.jsonl.
-(LangSmith também funciona: basta definir LANGSMITH_TRACING=true e LANGSMITH_API_KEY no .env.)"""
+# Logs próprios: cada nó grava uma linha JSON em logs/execucoes.jsonl.
+# (LangSmith também funciona: basta definir LANGSMITH_TRACING=true e LANGSMITH_API_KEY no .env.)
 from __future__ import annotations
 
 import json
@@ -15,10 +15,13 @@ def _resumirJson(objeto, limite=600):
     return texto if len(texto) <= limite else texto[:limite] + "…"
 
 
+# Envolve a função de um nó: grava o log e acrescenta o nome do nó em nosVisitados.
+# Aplicado em grafo.py ao registrar cada nó.
 def registrarNo(nomeNo):
-    """Decorador: grava o log do nó e acrescenta o nome dele em nosVisitados."""
     def decorador(funcaoNo):
-        # o parâmetro precisa se chamar "config": é por esse nome que o LangGraph o preenche
+        # O parâmetro precisa se chamar "config": é por esse nome que o LangGraph o preenche.
+        # Não trocar a cópia do __name__ (abaixo) por functools.wraps: o wraps faz o LangGraph
+        # enxergar a assinatura de funcaoNo, que não tem "config", e o thread_id some do log.
         def executarComRegistro(estado, config=None):
             inicio = time.perf_counter()
             erro = None

@@ -1,10 +1,9 @@
-"""Configuração do LLM. Escolha o provedor por variáveis de ambiente (arquivo .env):
-
-    LLM_PROVIDER = ollama | groq | openai | google
-    LLM_MODEL    = nome do modelo (ex.: qwen2.5:7b, llama-3.3-70b-versatile, gpt-4o-mini, gemini-2.0-flash)
-
-Chaves de API ficam SOMENTE no .env (que está no .gitignore): GROQ_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY.
-"""
+# Configuração do LLM. Escolha o provedor por variáveis de ambiente (arquivo .env):
+#
+#     LLM_PROVIDER = ollama | groq | openai | google
+#     LLM_MODEL    = nome do modelo (ex.: qwen2.5:7b, llama-3.3-70b-versatile, gpt-4o-mini, gemini-2.0-flash)
+#
+# Chaves de API ficam SOMENTE no .env (que está no .gitignore): GROQ_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY.
 from __future__ import annotations
 
 import os
@@ -50,8 +49,8 @@ def obterLlm():
     raise ValueError(f"LLM_PROVIDER desconhecido: {provedor}")
 
 
+# LLM que responde obrigatoriamente no formato do schema Pydantic.
 def obterLlmEstruturado(esquemaSaida):
-    """LLM que responde obrigatoriamente no formato do schema Pydantic."""
     metodoSaida = {"ollama": "json_schema", "groq": "function_calling",
                    "openai": "function_calling"}.get(obterProvedor())
     llm = obterLlm()

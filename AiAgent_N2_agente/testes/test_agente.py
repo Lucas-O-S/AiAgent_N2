@@ -1,10 +1,9 @@
-"""Testes automáticos SEM LLM (pytest). O LLM é substituído por respostas fixas, para testar
-validação, ferramentas, guarda anti-alucinação e as arestas do grafo de forma reprodutível.
-A avaliação do agente COM o LLM real é feita por testes/rodar_bateria.py.
-
-Uso:  pytest -q
-(o pytest só encontra funções cujo nome começa com "test")
-"""
+# Testes automáticos SEM LLM (pytest). O LLM é substituído por respostas fixas, para testar
+# validação, ferramentas, guarda anti-alucinação e as arestas do grafo de forma reprodutível.
+# A avaliação do agente COM o LLM real é feita por testes/rodar_bateria.py.
+#
+# Uso:  pytest -q
+# (o pytest só encontra funções cujo nome começa com "test")
 import sys
 from pathlib import Path
 
@@ -17,11 +16,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from agente import ferramentas  # noqa: E402
 from agente import nos  # noqa: E402
 from agente.esquema import validarCliente  # noqa: E402
+from agente.esquema_constantes import SERVICOS_INTERNET  # noqa: E402
 from agente.grafo import construirGrafo, perguntar  # noqa: E402
+from agente.nos_auxiliares import encontrarNumerosSemFonte  # noqa: E402
 
 CLIENTE_VALIDO = ferramentas.buscarCliente("7590-VHVEG")["dados"]
-SERVICOS_INTERNET = ["OnlineSecurity", "OnlineBackup", "DeviceProtection",
-                     "TechSupport", "StreamingTV", "StreamingMovies"]
 
 
 # ------------------------------------------------------------ validação
@@ -83,8 +82,8 @@ def testRagEncontraLimitacoes():
 
 def testGuardaAntiAlucinacao():
     contexto = '{"taxa": 0.4271, "n": 3875}'
-    assert nos.encontrarNumerosSemFonte("A taxa é de 42,7% em 3.875 clientes.", contexto) == []
-    assert nos.encontrarNumerosSemFonte("A taxa é de 37,5%.", contexto) == ["37,5"]
+    assert encontrarNumerosSemFonte("A taxa é de 42,7% em 3.875 clientes.", contexto) == []
+    assert encontrarNumerosSemFonte("A taxa é de 37,5%.", contexto) == ["37,5"]
 
 
 # ------------------------------------------------------------ grafo com LLM falso
@@ -97,9 +96,9 @@ class _LlmEstruturadoFalso:
         return self.respostaFixa
 
 
+# Dicionário de respostas fixas: chave = nome do schema Pydantic, ou "texto" para o LLM livre.
 @pytest.fixture
 def llmFalso(monkeypatch):
-    """Dicionário de respostas fixas: chave = nome do schema Pydantic, ou "texto" para o LLM livre."""
     respostasFixas = {}
 
     def obterLlmEstruturadoFalso(esquemaSaida):

@@ -1,18 +1,16 @@
-"""Ferramentas determinísticas do agente (nenhuma usa LLM).
-
-- preverChurn: carrega o pipeline salvo (joblib) e devolve classe + probabilidade.
-- buscarCliente: motor de busca por customerID na base Telco.
-- calcularFatoresAssociados: taxas de churn históricas das categorias do cliente (interpretação).
-- consultarBase: estatísticas sobre a base (taxa de churn, contagem, média) com filtros.
-- buscarDocumentacao: recuperação (RAG) por TF-IDF no cartão do modelo e no dicionário.
-"""
+# Ferramentas determinísticas do agente (nenhuma usa LLM).
+#
+# - preverChurn: carrega o pipeline salvo (joblib) e devolve classe + probabilidade.
+# - buscarCliente: motor de busca por customerID na base Telco.
+# - calcularFatoresAssociados: taxas de churn históricas das categorias do cliente (interpretação).
+# - consultarBase: estatísticas sobre a base (taxa de churn, contagem, média) com filtros.
+# - buscarDocumentacao: recuperação (RAG) por TF-IDF no cartão do modelo e no dicionário.
 from __future__ import annotations
 
 import json
 import re
 import sys
 from functools import lru_cache
-from pathlib import Path
 
 import joblib
 import pandas as pd
@@ -20,18 +18,12 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
 
-from .esquema import COLUNAS, COLUNAS_CATEGORICAS, FAIXAS_NUMERICAS, normalizarValorCategorico
-
-PASTA_RAIZ = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PASTA_RAIZ / "Modelos"))  # para o joblib achar telco_churn_features.DerivatedAtributes
-
-CAMINHO_MODELO = PASTA_RAIZ / "Modelos" / "modelo_tabular.joblib"
-CAMINHO_METRICAS = PASTA_RAIZ / "Modelos" / "metricas_modelo_tabular.json"
-CAMINHO_CSV = PASTA_RAIZ / "dados" / "Telco Customer Churn.csv"
-PASTA_DOCUMENTACAO = PASTA_RAIZ / "docs"
-DOCUMENTOS_RAG = ["cartao_modelo.md", "dicionario_dados.md"]
-
-ROTULOS_CLASSE = {0: "Não cancela", 1: "Cancela"}
+from .esquema import normalizarSimNao, normalizarValorCategorico
+from .esquema_constantes import COLUNAS, COLUNAS_CATEGORICAS, FAIXAS_NUMERICAS
+from .ferramentas_constantes import (AGREGACAO_POR_METRICA, CAMINHO_CSV, CAMINHO_METRICAS, CAMINHO_MODELO,
+                                     DOCUMENTOS_RAG, FUNCAO_POR_OPERADOR, MINIMO_CLIENTES_POR_GRUPO,
+                                     NOME_MODELO, PASTA_DOCUMENTACAO, PASTA_MODELOS, PROPORCAO_TESTE,
+                                     ROTULOS_CLASSE, SEMENTE_ALEATORIA)
 
 
 # ---------------------------------------------------------------- carregamento
@@ -39,8 +31,10 @@ ROTULOS_CLASSE = {0: "Não cancela", 1: "Cancela"}
 @lru_cache(maxsize=1)
 def carregarModelo():
     if not CAMINHO_MODELO.exists():
-        raise FileNotFoundError(
-            f"Modelo não encontrado em {CAMINHO_MODELO}.")
+        raise FileNotFoundError(f"Modelo não encontrado em {CAMINHO_MODELO}.")
+    # o pipeline salvo referencia telco_churn_features.DerivatedAtributes, que está na pasta Modelos
+    if str(PASTA_MODELOS) not in sys.path:
+        sys.path.insert(0, str(PASTA_MODELOS))
     return joblib.load(CAMINHO_MODELO)
 
 
@@ -49,31 +43,40 @@ def carregarMetricas() -> dict:
     return json.loads(CAMINHO_METRICAS.read_text(encoding="utf-8"))
 
 
-@lru_cache(maxsize=1)
-def carregarBase() -> pd.DataFrame:
-    """Base com a mesma limpeza do notebook + marcação de treino/teste (mesmo split)."""
+# CSV com a mesma limpeza do notebook + coluna churnBinario (0/1).
+def lerBaseLimpa() -> pd.DataFrame:
     base = pd.read_csv(CAMINHO_CSV)
     base["TotalCharges"] = pd.to_numeric(base["TotalCharges"], errors="coerce").fillna(0)
-    churnBinario = base["Churn"].map({"No": 0, "Yes": 1})
-    indicesTreino, _ = train_test_split(base.index, test_size=0.2, random_state=42, stratify=churnBinario)
+    base["churnBinario"] = base["Churn"].map({"No": 0, "Yes": 1})
+    return base
+
+
+# Mesma divisão treino/teste do notebook (usada pelo agente e por scripts/avaliar_modelo.py).
+def dividirTreinoTeste(*dados, alvo):
+    return train_test_split(*dados, test_size=PROPORCAO_TESTE, random_state=SEMENTE_ALEATORIA, stratify=alvo)
+
+
+# Base limpa + coluna "conjunto" dizendo se o cliente ficou no treino ou no teste do modelo.
+@lru_cache(maxsize=1)
+def carregarBase() -> pd.DataFrame:
+    base = lerBaseLimpa()
+    indicesTreino, _ = dividirTreinoTeste(base.index, alvo=base["churnBinario"])
     base["conjunto"] = "teste"
     base.loc[indicesTreino, "conjunto"] = "treino"
-    base["churnBinario"] = churnBinario
     return base
 
 
 # ---------------------------------------------------------------- ferramentas
 
+# Recebe um cliente JÁ VALIDADO e devolve a previsão do modelo salvo.
 def preverChurn(dadosCliente: dict) -> dict:
-    """Recebe um cliente JÁ VALIDADO e devolve a previsão do modelo salvo."""
     modelo = carregarModelo()
     entradaModelo = pd.DataFrame([{coluna: dadosCliente[coluna] for coluna in COLUNAS}])
     probabilidades = modelo.predict_proba(entradaModelo)[0]
     classePrevista = int(modelo.predict(entradaModelo)[0])
-    indiceClasseCancela = list(modelo.classes_).index(1)
-    probabilidadeCancelar = float(probabilidades[indiceClasseCancela])
+    probabilidadeCancelar = float(probabilidades[list(modelo.classes_).index(1)])
     return {
-        "modelo": "Naive Bayes (GaussianNB)",
+        "modelo": NOME_MODELO,
         "classePrevista": classePrevista,
         "rotulo": ROTULOS_CLASSE[classePrevista],
         "probabilidadeCancelar": round(probabilidadeCancelar, 4),
@@ -82,8 +85,8 @@ def preverChurn(dadosCliente: dict) -> dict:
     }
 
 
+# Motor de busca: encontra o cliente pelo customerID. None se não existir.
 def buscarCliente(idCliente: str) -> dict | None:
-    """Motor de busca: encontra o cliente pelo customerID. None se não existir."""
     if not idCliente:
         return None
     base = carregarBase()
@@ -100,76 +103,77 @@ def buscarCliente(idCliente: str) -> dict | None:
     }
 
 
+def _descreverGrupo(atributo: str, valor, clientesDoGrupo: pd.DataFrame) -> dict:
+    return {"atributo": atributo, "valor": valor,
+            "taxaChurnGrupo": round(float(clientesDoGrupo["churnBinario"].mean()), 4),
+            "quantidadeClientes": int(len(clientesDoGrupo))}
+
+
+# Taxas de churn HISTÓRICAS (na base) das categorias que o cliente possui.
+# É uma associação observada nos dados, não a explicação interna do Naive Bayes.
 def calcularFatoresAssociados(dadosCliente: dict, quantidade: int = 3) -> dict:
-    """Taxas de churn HISTÓRICAS (na base) das categorias que o cliente possui.
-    É uma associação observada nos dados, não a explicação interna do Naive Bayes."""
     base = carregarBase()
     taxaChurnGeral = float(base["churnBinario"].mean())
     fatores = []
     for coluna in COLUNAS_CATEGORICAS:
         valor = dadosCliente.get(coluna)
         clientesDoGrupo = base[base[coluna] == valor]
-        if len(clientesDoGrupo) >= 30:
-            fatores.append({"atributo": coluna, "valor": valor,
-                            "taxaChurnGrupo": round(float(clientesDoGrupo["churnBinario"].mean()), 4),
-                            "quantidadeClientes": int(len(clientesDoGrupo))})
+        if len(clientesDoGrupo) >= MINIMO_CLIENTES_POR_GRUPO:
+            fatores.append(_descreverGrupo(coluna, valor, clientesDoGrupo))
     fatores.sort(key=lambda fator: fator["taxaChurnGrupo"], reverse=True)
     fatoresRisco = [fator for fator in fatores if fator["taxaChurnGrupo"] > taxaChurnGeral][:quantidade]
     fatoresProtecao = sorted([fator for fator in fatores if fator["taxaChurnGrupo"] < taxaChurnGeral],
                              key=lambda fator: fator["taxaChurnGrupo"])[:quantidade]
+    fibraSuporte = None
     if dadosCliente.get("InternetService") == "Fiber optic":
         clientesFibra = base[(base["InternetService"] == "Fiber optic")
                              & (base["TechSupport"] == dadosCliente.get("TechSupport"))]
-        fibraSuporte = {"atributo": "fibra + TechSupport", "valor": dadosCliente.get("TechSupport"),
-                        "taxaChurnGrupo": round(float(clientesFibra["churnBinario"].mean()), 4),
-                        "quantidadeClientes": int(len(clientesFibra))}
-    else:
-        fibraSuporte = None
+        fibraSuporte = _descreverGrupo("fibra + TechSupport", dadosCliente.get("TechSupport"), clientesFibra)
     return {"taxaChurnGeral": round(taxaChurnGeral, 4), "maiorRisco": fatoresRisco,
             "menorRisco": fatoresProtecao, "fibraSuporte": fibraSuporte}
 
 
-OPERADORES_VALIDOS = {"==", "!=", ">", "<", ">=", "<="}
-METRICAS_VALIDAS = {"taxa_churn", "contagem", "media"}
+# Devolve (valor convertido, None) ou (None, mensagem de erro).
+def _prepararValorDoFiltro(coluna: str, operador: str, valor):
+    if coluna in COLUNAS_CATEGORICAS:
+        valorNormalizado = normalizarValorCategorico(coluna, valor)
+        if valorNormalizado is None:
+            return None, f"Valor '{valor}' inválido para {coluna}. Aceitos: {COLUNAS_CATEGORICAS[coluna]}."
+        if operador not in ("==", "!="):
+            return None, f"Operador '{operador}' não se aplica à coluna categórica {coluna}."
+        return valorNormalizado, None
+    if coluna == "Churn":
+        valorNormalizado = normalizarSimNao(valor)
+        if valorNormalizado is None:
+            return None, "Churn só aceita Yes ou No."
+        return valorNormalizado, None
+    try:
+        return float(str(valor).replace(",", ".")), None
+    except ValueError:
+        return None, f"Valor '{valor}' deveria ser numérico para {coluna}."
 
 
+# Executa uma consulta estruturada na base. Valida colunas/valores antes.
 def consultarBase(metrica: str, filtros: list[dict] | None = None,
                   agruparPor: str | None = None, colunaMedia: str | None = None) -> dict:
-    """Executa uma consulta estruturada na base. Valida colunas/valores antes."""
     base = carregarBase()
     colunasValidas = set(COLUNAS) | {"Churn"}
-    if metrica not in METRICAS_VALIDAS:
-        return {"erro": f"Métrica '{metrica}' inválida. Use: {sorted(METRICAS_VALIDAS)}."}
+    if metrica not in AGREGACAO_POR_METRICA:
+        return {"erro": f"Métrica '{metrica}' inválida. Use: {sorted(AGREGACAO_POR_METRICA)}."}
+
     filtrosAplicados = []
     for filtro in filtros or []:
-        coluna, operador, valor = filtro.get("coluna"), filtro.get("operador", "=="), filtro.get("valor")
+        coluna, operador = filtro.get("coluna"), filtro.get("operador", "==")
         if coluna not in colunasValidas:
             return {"erro": f"Coluna '{coluna}' não existe na base."}
-        if operador not in OPERADORES_VALIDOS:
+        if operador not in FUNCAO_POR_OPERADOR:
             return {"erro": f"Operador '{operador}' inválido."}
-        if coluna in COLUNAS_CATEGORICAS:
-            valorNormalizado = normalizarValorCategorico(coluna, valor)
-            if valorNormalizado is None:
-                return {"erro": f"Valor '{valor}' inválido para {coluna}. "
-                                f"Aceitos: {COLUNAS_CATEGORICAS[coluna]}."}
-            valor = valorNormalizado
-            if operador not in ("==", "!="):
-                return {"erro": f"Operador '{operador}' não se aplica à coluna categórica {coluna}."}
-        elif coluna == "Churn":
-            valor = normalizarValorCategorico("Partner", valor)  # Yes/No
-            if valor is None:
-                return {"erro": "Churn só aceita Yes ou No."}
-        else:
-            try:
-                valor = float(str(valor).replace(",", "."))
-            except ValueError:
-                return {"erro": f"Valor '{valor}' deveria ser numérico para {coluna}."}
-        valoresColuna = base[coluna]
-        mascara = {"==": valoresColuna == valor, "!=": valoresColuna != valor,
-                   ">": valoresColuna > valor, "<": valoresColuna < valor,
-                   ">=": valoresColuna >= valor, "<=": valoresColuna <= valor}[operador]
-        base = base[mascara]
+        valor, erro = _prepararValorDoFiltro(coluna, operador, filtro.get("valor"))
+        if erro:
+            return {"erro": erro}
+        base = base[FUNCAO_POR_OPERADOR[operador](base[coluna], valor)]
         filtrosAplicados.append(f"{coluna} {operador} {valor}")
+
     if base.empty:
         return {"filtros": filtrosAplicados, "quantidadeClientes": 0, "resultado": "nenhum cliente encontrado"}
     if agruparPor and agruparPor not in colunasValidas:
@@ -180,7 +184,8 @@ def consultarBase(metrica: str, filtros: list[dict] | None = None,
         valoresAlvo = base[colunaMedia]
     else:
         valoresAlvo = base["churnBinario"]
-    agregacao = {"taxa_churn": "mean", "contagem": "size", "media": "mean"}[metrica]
+
+    agregacao = AGREGACAO_POR_METRICA[metrica]
     if agruparPor:
         grupos = valoresAlvo.groupby(base[agruparPor])
         resultadoPorGrupo = getattr(grupos, agregacao)().round(4)
@@ -198,9 +203,9 @@ def consultarBase(metrica: str, filtros: list[dict] | None = None,
 
 # ---------------------------------------------------------------- RAG
 
+# Quebra os documentos em seções (## / ###) e monta o índice TF-IDF.
 @lru_cache(maxsize=1)
 def _construirIndiceDocumentos():
-    """Quebra os documentos em seções (## / ###) e monta o índice TF-IDF."""
     trechos = []
     for nomeArquivo in DOCUMENTOS_RAG:
         caminho = PASTA_DOCUMENTACAO / nomeArquivo

@@ -1,5 +1,5 @@
-"""Exporta o diagrama do grafo para docs/grafo_agente.mmd (Mermaid).
-Se houver internet, também tenta gerar docs/grafo_agente.png."""
+# Exporta o diagrama do grafo para docs/grafo_agente.mmd (Mermaid).
+# Se houver internet, também tenta gerar docs/grafo_agente.png.
 import sys
 from pathlib import Path
 

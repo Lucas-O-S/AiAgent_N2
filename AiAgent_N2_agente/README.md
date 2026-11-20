@@ -64,7 +64,7 @@ Diagrama gerado automaticamente pelo LangGraph: [`docs/grafo_agente.mmd`](docs/g
 ### Garantias contra previsões inventadas
 1. O LLM nunca calcula nada: classe, probabilidade, taxas e métricas vêm das ferramentas ou do cartão do modelo.
 2. O cabeçalho da previsão é montado por código a partir da saída do modelo.
-3. **Guarda anti-alucinação** (`nos.encontrarNumerosSemFonte`): todo número citado pelo LLM é comparado com os números dos resultados e da documentação (aceitando arredondamento e proporção ↔ porcentagem). Se houver número sem fonte, o texto do LLM é descartado e substituído por uma resposta determinística — o campo `guardaAcionada` registra isso.
+3. **Guarda anti-alucinação** (`nos_auxiliares.encontrarNumerosSemFonte`): todo número citado pelo LLM é comparado com os números dos resultados e da documentação (aceitando arredondamento e proporção ↔ porcentagem). Se houver número sem fonte, o texto do LLM é descartado e substituído por uma resposta determinística — o campo `guardaAcionada` registra isso.
 
 ### Elementos adicionais implementados
 - **Memória de conversa** (checkpoint `MemorySaver` por `thread_id`): correções em vários turnos e simulações "e se".
@@ -137,6 +137,7 @@ Cada nó grava uma linha em `logs/execucoes.jsonl` (thread, nó, duração, entr
 
 ```
 agente/            estado, esquema/validação, ferramentas, nós, grafo, LLM, logs
+                   (*_constantes.py: constantes de cada módulo; *_auxiliares.py: funções auxiliares)
 docs/              cartão do modelo, dicionário de dados (base do RAG), grafo exportado
 Modelos/          modelo_tabular.joblib (Colab), telco_churn_features.py, métricas
 dados/            Telco Customer Churn.csv (busca por customerID e consultas)

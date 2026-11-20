@@ -1,40 +1,31 @@
-"""Confere o modelo salvo no Colab (Modelos/modelo_tabular.joblib) SEM retreinar:
-refaz a mesma divisão treino/teste do notebook, avalia o arquivo no teste, confere a matriz
-de confusão com a impressa no notebook e grava Modelos/metricas_modelo_tabular.json
-(métricas usadas pelo agente e pelo cartão do modelo).
-
-Uso:  python scripts/avaliar_modelo.py
-"""
+# Confere o modelo salvo no Colab (Modelos/modelo_tabular.joblib) SEM retreinar:
+# refaz a mesma divisão treino/teste do notebook, avalia o arquivo no teste, confere a matriz
+# de confusão com a impressa no notebook e grava Modelos/metricas_modelo_tabular.json
+# (métricas usadas pelo agente e pelo cartão do modelo).
+#
+# Uso:  python scripts/avaliar_modelo.py
 import json
 import sys
 from pathlib import Path
 
-import joblib
-import pandas as pd
 import sklearn
 from sklearn.metrics import (accuracy_score, confusion_matrix, f1_score,
                              precision_score, recall_score, roc_auc_score)
-from sklearn.model_selection import train_test_split
 
-PASTA_RAIZ = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PASTA_RAIZ / "Modelos"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from agente.ferramentas import carregarModelo, dividirTreinoTeste, lerBaseLimpa  # noqa: E402
+from agente.ferramentas_constantes import CAMINHO_METRICAS  # noqa: E402
 
-CAMINHO_MODELO = PASTA_RAIZ / "Modelos" / "modelo_tabular.joblib"
-CAMINHO_METRICAS = PASTA_RAIZ / "Modelos" / "metricas_modelo_tabular.json"
-CAMINHO_CSV = PASTA_RAIZ / "dados" / "Telco Customer Churn.csv"
 MATRIZ_DO_NOTEBOOK = [[667, 368], [64, 310]]  # Naive Bayes, célula de custos do notebook
 
 
 def executar():
-    base = pd.read_csv(CAMINHO_CSV)
-    base["TotalCharges"] = pd.to_numeric(base["TotalCharges"], errors="coerce").fillna(0)
-    base = base.drop(columns=["customerID"])
-    base["Churn"] = base["Churn"].map({"No": 0, "Yes": 1})
-    atributos, alvo = base.drop(columns=["Churn"]), base["Churn"]
-    atributosTreino, atributosTeste, alvoTreino, alvoTeste = train_test_split(
-        atributos, alvo, test_size=0.2, random_state=42, stratify=alvo)
+    base = lerBaseLimpa()
+    atributos = base.drop(columns=["customerID", "Churn", "churnBinario"])
+    alvo = base["churnBinario"]
+    atributosTreino, atributosTeste, alvoTreino, alvoTeste = dividirTreinoTeste(atributos, alvo, alvo=alvo)
 
-    modelo = joblib.load(CAMINHO_MODELO)
+    modelo = carregarModelo()
     previsoes = modelo.predict(atributosTeste)
     probabilidadesCancelar = modelo.predict_proba(atributosTeste)[:, 1]
     matrizConfusao = confusion_matrix(alvoTeste, previsoes)
