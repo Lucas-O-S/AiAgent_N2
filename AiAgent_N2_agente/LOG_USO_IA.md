@@ -4,7 +4,7 @@ Exigência do enunciado (item 4): no mínimo **8 interações**, com os principa
 
 | # | Data | Ferramenta | Integrante | Prompt (resumo) | Resultado | Aceito / rejeitado / corrigido — por quê |
 |---|---|---|---|---|---|---|
-| 1 | 20/11/2026 | Claude | Adriana | Enviou o enunciado da N2 e o link do repositório; pediu um agente (não ML novo) que, a partir de uma pergunta, consulte o modelo para gerar respostas, como motor de busca/interpretação, só com a base Telco, sem imagens. | Estrutura inicial do agente LangGraph: estado, roteador, extração, validação, ferramentas (previsão, busca por customerID, consulta à base, RAG), memória, Gradio, cartão do modelo, testes e este log. | _(preencher: o que o grupo revisou, manteve e mudou)_ |
+| 1 | 20/11/2026 | Claude | Adriana | Enviou o enunciado da N2 e o link do repositório; pediu um agente (não ML novo) que, a partir de uma pergunta, consulte o modelo para gerar respostas, como motor de busca/interpretação, só com a base Telco, sem imagens. | Estrutura inicial do agente LangGraph: estado, roteador, extração, validação, ferramentas (previsão, busca por customerID, consulta à base, RAG), memória, Gradio, cartão do modelo, testes e este log. | Aceito |
 | 2 | 20/11/2026 | Claude | Adriana | Enviou o link do repositório do agente (AiAgent_N2), que já tinha o modelo original exportado do Colab. | Agente adaptado à estrutura do repositório (`Modelos/`, `dados/`), usando o arquivo original do Colab; script de conferência do modelo sem retreino. | Aceito |
 | 3 | | | | | | |
 | 4 | | | | | | |
