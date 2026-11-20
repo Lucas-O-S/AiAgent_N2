@@ -57,15 +57,31 @@ def validarCliente(dadosBrutos: dict) -> ResultadoValidacao:
 # imputação estatística). Altera valoresInformados e devolve os campos preenchidos.
 def _preencherPorCoerencia(valoresInformados: dict) -> list[str]:
     camposPreenchidos = []
+    
     if normalizarValorCategorico("InternetService", valoresInformados.get("InternetService")) == "No":
+    
         for colunaServico in SERVICOS_INTERNET:
+    
             if colunaServico not in valoresInformados:
+    
                 valoresInformados[colunaServico] = "No internet service"
                 camposPreenchidos.append(colunaServico)
+    
     if (normalizarValorCategorico("PhoneService", valoresInformados.get("PhoneService")) == "No"
+    
             and "MultipleLines" not in valoresInformados):
+    
         valoresInformados["MultipleLines"] = "No phone service"
+    
         camposPreenchidos.append("MultipleLines")
+    
+    if (
+        normalizarValorCategorico("MultipleLines", valoresInformados.get("MultipleLines")) in ("Yes", "No")
+        and not valoresInformados.get("PhoneService")
+    ):
+        valoresInformados["PhoneService"] = "Yes"
+        camposPreenchidos.append("PhoneService")    
+    
     return camposPreenchidos
 
 

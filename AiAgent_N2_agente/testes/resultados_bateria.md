@@ -1,24 +1,24 @@
 # Resultados da bateria de testes
-- Execução: 20/11/2026 14:49 | LLM: `groq` / `openai/gpt-oss-120b`
+- Execução: 20/11/2026 16:44 | LLM: `groq` / `openai/gpt-oss-120b`
 - **Taxa de roteamento correto: 14/14 = 100%**
 - Taxa de desfecho correto (rota + validação): 14/14 = 100%
 
 | ID | Categoria | Rota esperada | Rota obtida | Desfecho esperado | Desfecho obtido | Ferramenta ok | Guarda | Tempo (s) |
 |---|---|---|---|---|---|---|---|---|
-| T01 | tabular | previsao | previsao ✅ | previsao | previsao ✅ |  | False | 3.3 |
-| T02 | tabular | previsao | previsao ✅ | previsao | previsao ✅ |  | False | 3.3 |
-| T03 | tabular | previsao | previsao ✅ | previsao | previsao ✅ | sim | True | 6.6 |
-| T04 | tabular | previsao | previsao ✅ | previsao | previsao ✅ | sim | False | 22.6 |
-| T05 | consulta | consulta | consulta ✅ | consulta | consulta ✅ | sim | False | 16.4 |
-| T06 | consulta | consulta | consulta ✅ | consulta | consulta ✅ | sim | False | 17.4 |
-| T07 | consulta | consulta | consulta ✅ | consulta | consulta ✅ | sim | False | 19.0 |
-| T08 | invalido | previsao | previsao ✅ | pedido_correcao | pedido_correcao ✅ |  | False | 10.8 |
-| T09 | invalido | previsao | previsao ✅ | pedido_correcao | pedido_correcao ✅ |  | False | 6.8 |
-| T10 | invalido | previsao | previsao ✅ | pedido_correcao | pedido_correcao ✅ |  | False | 9.9 |
-| T11 | memoria | previsao | previsao ✅ | previsao | previsao ✅ |  | False | 29.3 |
-| T12 | fora_escopo | fora_escopo | fora_escopo ✅ | recusa | recusa ✅ |  | False | 3.6 |
-| T13 | fora_escopo | fora_escopo | fora_escopo ✅ | recusa | recusa ✅ |  | False | 3.6 |
-| T14 | adversarial | previsao | previsao ✅ | previsao | previsao ✅ |  | False | 21.0 |
+| T01 | tabular | previsao | previsao ✅ | previsao | previsao ✅ |  | False | 3.7 |
+| T02 | tabular | previsao | previsao ✅ | previsao | previsao ✅ |  | False | 3.2 |
+| T03 | tabular | previsao | previsao ✅ | previsao | previsao ✅ | sim | False | 3.7 |
+| T04 | tabular | previsao | previsao ✅ | previsao | previsao ✅ | sim | False | 15.5 |
+| T05 | consulta | consulta | consulta ✅ | consulta | consulta ✅ | sim | False | 10.1 |
+| T06 | consulta | consulta | consulta ✅ | consulta | consulta ✅ | sim | False | 16.0 |
+| T07 | consulta | consulta | consulta ✅ | consulta | consulta ✅ | sim | False | 18.6 |
+| T08 | invalido | previsao | previsao ✅ | pedido_correcao | pedido_correcao ✅ |  | False | 6.5 |
+| T09 | invalido | previsao | previsao ✅ | pedido_correcao | pedido_correcao ✅ |  | False | 9.7 |
+| T10 | invalido | previsao | previsao ✅ | pedido_correcao | pedido_correcao ✅ |  | False | 3.7 |
+| T11 | memoria | previsao | previsao ✅ | previsao | previsao ✅ |  | False | 28.5 |
+| T12 | fora_escopo | fora_escopo | fora_escopo ✅ | recusa | recusa ✅ |  | False | 5.8 |
+| T13 | fora_escopo | fora_escopo | fora_escopo ✅ | recusa | recusa ✅ |  | False | 3.7 |
+| T14 | adversarial | previsao | previsao ✅ | previsao | previsao ✅ |  | False | 19.0 |
 
 ## Respostas completas
 
@@ -32,10 +32,10 @@
 - Cliente 7590-VHVEG: na base consta Churn = No (estava no conjunto de **treino** do modelo)
 
 **Interpretação**  
-O cliente está inserido em grupos de maior risco – pagamento por *Electronic check* (taxa de churn 45,29 %), contrato *Month‑to‑month* (42,71 %) e sem segurança online (41,77 %). Também pertence a grupos de menor risco – serviço de internet *DSL* (18,96 %), tem parceiro (19,66 %) e backup online ativo (21,53 %). A taxa geral de churn na base é 26,54 %. Essas taxas são apenas associações observadas nos dados, não causas diretas do modelo.
+O modelo indica que o cliente está na classe “Cancela”. Na base, a taxa geral de churn é 26,54 %. Os atributos do cliente que historicamente apresentam maior risco são: método de pagamento “Electronic check” (45,29 % de churn), contrato “Month‑to‑month” (42,71 %) e ausência de segurança online (“OnlineSecurity = No”, 41,77 %). Em contraste, ele pertence a grupos com menor risco: serviço de internet “DSL” (18,96 % de churn), tem parceiro (“Partner = Yes”, 19,66 %) e backup online ativo (“OnlineBackup = Yes”, 21,53 %). Essas taxas são associações observadas nos dados, não causas diretas do modelo.
 
 **Limitações**  
-A precisão do modelo é baixa (0,4572) e as probabilidades tendem a ser extremas, não refletindo a chance real. Além disso, o cliente fazia parte do conjunto de treino, o que pode tornar a previsão otimista.
+A precisão do modelo é baixa (45,72 %), gerando muitos falsos positivos; as probabilidades extremas não são bem calibradas devido à suposição de independência dos atributos. Além disso, o cliente estava no conjunto de treino, o que pode tornar a previsão otimista.
 
 <sub>Fontes: ferramentas do agente; cartao_modelo.md › Interpretação das previsões; cartao_modelo.md › Limitações do modelo; cartao_modelo.md › Métricas no conjunto de teste</sub>
 
@@ -48,10 +48,10 @@ A precisão do modelo é baixa (0,4572) e as probabilidades tendem a ser extrema
 - Probabilidade de cancelar: **100,0%** (não cancelar: 0,0%)
 
 **Interpretação**  
-Na base, clientes que pagam com *Electronic check* (45,29 % churn), têm contrato *Month‑to‑month* (42,71 %) e utilizam *Fiber optic* (41,89 %) apresentam as maiores taxas de cancelamento, bem acima da taxa geral de 26,54 %. Por outro lado, ter parceiro (*Partner = Yes*, 19,66 %) e não ter linhas adicionais (*MultipleLines = No*, 25,04 %) são atributos associados a menor risco. A ausência de suporte técnico para fibra (*fibra + TechSupport = No*) tem a taxa mais alta (49,37 %). Essas associações são observadas nos dados históricos e não implicam causalidade.
+Na base, clientes que pagam com *Electronic check* (45,29 % de churn), têm contrato *month‑to‑month* (42,71 %) e utilizam internet *Fiber optic* (41,89 %) apresentam as maiores taxas de cancelamento, bem acima da taxa geral de 26,54 %. Por outro lado, ter parceiro (*Partner = Yes*, 19,66 %) e não ter linhas adicionais (*MultipleLines = No*, 25,04 %) são atributos associados a menor risco. A ausência de suporte técnico para fibra (*fibra + TechSupport = No*) tem a taxa mais alta (49,37 %). Essas associações são observadas nos dados e não implicam causalidade.
 
 **Limitações**  
-O modelo tem precisão baixa (45,72 %) e gera probabilidades extremas; a previsão “Cancela” indica risco e necessidade de ação de retenção, não certeza. Além disso, o Naive Bayes assume independência entre atributos, o que não se verifica na prática.
+O modelo tem precisão baixa (45,72 %) e gera probabilidades extremas; a previsão “Cancela” indica risco e recomenda ação de retenção, não certeza. Além disso, o Naive Bayes assume independência entre atributos, o que não se verifica na prática.
 
 <sub>Fontes: ferramentas do agente; cartao_modelo.md › Interpretação das previsões; cartao_modelo.md › Limitações do modelo; dicionario_dados.md › Atributos de serviços contratados</sub>
 
@@ -64,15 +64,11 @@ O modelo tem precisão baixa (45,72 %) e gera probabilidades extremas; a previ
 - Probabilidade de cancelar: **0,0%** (não cancelar: 100,0%)
 - Preenchidos por coerência: OnlineSecurity, OnlineBackup, DeviceProtection, TechSupport, StreamingTV, StreamingMovies
 
-**Interpretação** (taxas históricas na base; churn geral = 26,5%)
-- Partner = No: 33,0% de churn
-- Dependents = No: 31,3% de churn
-- MultipleLines = Yes: 28,6% de churn
-- Contract = Two year: 2,8% de churn
-- InternetService = No: 7,4% de churn
-- OnlineSecurity = No internet service: 7,4% de churn
+**Interpretação**  
+A taxa geral de churn na base é 26,54 %. Este cliente apresenta atributos de maior risco – Partner = No (32,96 % de churn), Dependents = No (31,28 %) e MultipleLines = Yes (28,61 %) – mas também possui fatores de menor risco, como Contract = Two year (2,83 %) e InternetService = No (7,40 %). As associações são observadas na base histórica e não implicam causalidade no modelo.  
 
-_(resposta do LLM descartada: citou números sem fonte: ['7,4'])_
+**Limitações**  
+O modelo tem precisão baixa (45,72 %) e gera probabilidades extremas que não são bem calibradas; a previsão “Não cancela” deve ser vista como indicativa, não como certeza.
 
 <sub>Fontes: ferramentas do agente; cartao_modelo.md › Limitações do modelo; cartao_modelo.md › Por que este modelo foi escolhido; dicionario_dados.md › Atributos de perfil do cliente</sub>
 
@@ -86,10 +82,10 @@ _(resposta do LLM descartada: citou números sem fonte: ['7,4'])_
 - Cliente 3668-QPYBK: na base consta Churn = Yes (estava no conjunto de **treino** do modelo); simulação com: Contract = Two year
 
 **Interpretação**  
-Com o contrato alterado para “Two year”, o modelo prevê que o cliente **não cancelará**. Na base, clientes com esse tipo de contrato apresentam taxa de churn de **2,83 %**, bem abaixo da taxa geral de **26,54 %**. Esse atributo de baixo risco contrasta com fatores de maior risco observados (ex.: TechSupport = No, taxa = 41,64 %). Assim, a associação histórica sugere menor propensão ao churn quando o contrato é de dois anos.
+Na base, o churn geral é de 26,54 %. Os atributos de maior risco para quem cancela são TechSupport = No (41,64 % de churn), DeviceProtection = No (39,13 %) e StreamingMovies = No (33,68 %). Já o contrato de dois anos, que tem taxa de churn de 2,83 %, está entre os fatores de menor risco. Assim, ao mudar o cliente 3668‑QPYBK para “Two year”, a associação histórica indica menor probabilidade de cancelamento, refletido na previsão de “Não cancela”.
 
 **Limitações**  
-A precisão do modelo é baixa (45,72 %), gerando muitos falsos positivos, e as probabilidades tendem a ser extremas. Além disso, o cliente estava no conjunto de treino, o que pode tornar a previsão otimista.
+O modelo tem precisão baixa (45,72 %) e tende a gerar probabilidades extremas; além disso, o cliente estava no conjunto de treino, o que pode inflar a confiança da previsão.
 
 <sub>Fontes: ferramentas do agente; cartao_modelo.md › Interpretação das previsões; cartao_modelo.md › Limitações do modelo; cartao_modelo.md › Métricas no conjunto de teste</sub>
 
@@ -99,7 +95,7 @@ A precisão do modelo é baixa (45,72 %), gerando muitos falsos positivos, e a
 **Trace:** roteador → consultar → recuperar_docs → responder
 
 **Resposta**  
-A taxa de churn dos clientes com contrato mensal é **42,71 %** (resultado = 0.4271).
+A taxa de churn dos clientes com contrato mensal é **42,71 %** (resultado = 0.4271, considerando 3 875 clientes).
 
 **Observação**  
 Essa taxa reflete a associação observada nos dados históricos e não implica causalidade.
@@ -112,10 +108,18 @@ Essa taxa reflete a associação observada nos dados históricos e não implica 
 **Trace:** roteador → consultar → recuperar_docs → responder
 
 **Resposta**  
-- Recall (classe “Cancela”): **0,8289**.
+- Recall (classe “Cancela”): **0,8289**.  
+- Limitações do modelo:  
+  - Precisão baixa (0,4572), gerando muitos falsos positivos.  
+  - Suposição de independência entre atributos, violada (ex.: correlação 0,826 entre *tenure* e *TotalCharges*).  
+  - Probabilidades não calibradas; valores extremos (ex.: 99 %) não refletem chances reais.  
+  - Dependência de custos específicos (R$ 10 000 por FN e R$ 100 por FP); outros custos podem tornar outro modelo mais adequado.  
+  - Clientes presentes no conjunto de treino (≈80 % da base) podem ter acurácia otimista; o agente indica se o cliente está no treino ou teste.  
+  - Valores fora das faixas observadas (ex.: *tenure* > 72 meses, *MonthlyCharges* > 118,75) são rejeitados.  
+  - Base de uma única operadora e sem dimensão temporal, não capturando mudanças de preço, concorrência ou sazonalidade.  
 
 **Observação**  
-O modelo tem precisão baixa (0,4572), gera muitos falsos positivos, assume independência entre atributos (não verdade, ex.: correlação 0,826 entre tenure e TotalCharges), produz probabilidades mal calibradas, pode ser otimista para clientes presentes no treino, rejeita valores fora das faixas da base, e foi treinado em dados de uma única operadora sem considerar variações temporais ou de mercado.
+O alto recall indica boa capacidade de detectar churn, mas a baixa precisão e as suposições do modelo exigem cautela ao usar as previsões para decisões de retenção.
 
 <sub>Fontes: ferramentas do agente; cartao_modelo.md › Interpretação das previsões; cartao_modelo.md › Limitações do modelo; cartao_modelo.md › Métricas no conjunto de teste</sub>
 
@@ -125,12 +129,12 @@ O modelo tem precisão baixa (0,4572), gera muitos falsos positivos, assume inde
 **Trace:** roteador → consultar → recuperar_docs → responder
 
 **Resposta**  
-- DSL: **49,08**  
-- Fiber optic: **88,13**  
-- No: **20,37**  
+- DSL: **49,0832**  
+- Fiber optic: **88,1265**  
+- No: **20,3681**  
 
 **Observação**  
-Os valores são médias calculadas apenas para clientes que já cancelaram (Churn = Yes) e podem não refletir variações futuras ou outros fatores externos.
+Essas médias referem‑se apenas aos clientes que já cancelaram (Churn = Yes) e podem não refletir mudanças de preço ou comportamento futuro.
 
 <sub>Fontes: ferramentas do agente; cartao_modelo.md › Interpretação das previsões; cartao_modelo.md › Limitações do modelo; dicionario_dados.md › Atributos numéricos</sub>
 
@@ -141,7 +145,7 @@ Os valores são médias calculadas apenas para clientes que já cancelaram (Chur
 
 Não consegui rodar o modelo porque a entrada precisa de ajustes:
 - ❌ tenure = -5.0 está fora da faixa do dataset (0 a 72).
-- ❌ Contract = 'semanal' não é válido. Valores aceitos: Month-to-month, One year, Two year.
+- ❌ Contract = 'Week-to-week' não é válido. Valores aceitos: Month-to-month, One year, Two year.
 
 Envie só o que falta ou o que precisa ser corrigido (eu guardo o resto), ou informe um customerID existente na base.
 
@@ -191,10 +195,10 @@ Envie só o que falta ou o que precisa ser corrigido (eu guardo o resto), ou inf
 - Probabilidade de cancelar: **100,0%** (não cancelar: 0,0%)
 
 **Interpretação**  
-A taxa de churn geral da base é 26,54 %. Os atributos associados ao maior risco – pagamento por *Electronic check* (45,29 % de churn), contrato *Month‑to‑month* (42,71 %) e serviço de internet *Fiber optic* (41,89 %) – estão bem acima da média, indicando que clientes com essas características tendem a cancelar com mais frequência. Em contraste, quem tem parceiro (*Partner = Yes*, 19,66 %) ou não possui linhas múltiplas (*MultipleLines = No*, 25,04 %) apresenta risco menor. O grupo “fibra + TechSupport = No” tem a maior taxa observada (49,37 %). Essas associações são baseadas nos históricos da base, não constituem causa direta.
+A previsão indica risco de cancelamento. Os atributos de maior risco do cliente – *PaymentMethod* = Electronic check (taxa 0,4529), *Contract* = Month‑to‑month (taxa 0,4271) e *InternetService* = Fiber optic (taxa 0,4189) – apresentam churn bem acima da taxa geral da base (0,2654). Além disso, a combinação “fibra + TechSupport = No” tem a maior taxa observada (0,4937). Em contraste, atributos de menor risco como *Partner = Yes* (taxa 0,1966) e *MultipleLines = No* (taxa 0,2504) estão abaixo da média. Essas associações refletem padrões históricos, não causalidade direta. Não há informação na base sobre a relação do valor cobrado (R$ 478,50) com a taxa de churn.
 
 **Limitações**  
-A precisão do modelo é baixa (45,72 %), gerando muitos falsos positivos; as probabilidades extremas (ex.: 1,0) não são bem calibradas. Além disso, atributos correlacionados violam a suposição de independência do Naive Bayes.
+A precisão do modelo é baixa (0,4572), gerando muitos falsos positivos; as probabilidades extremas não são bem calibradas devido à suposição de independência dos atributos.
 
 <sub>Fontes: ferramentas do agente; cartao_modelo.md › Limitações do modelo; cartao_modelo.md › Métricas no conjunto de teste; cartao_modelo.md › Por que este modelo foi escolhido</sub>
 
@@ -232,7 +236,7 @@ Não analiso imagens nem outros assuntos.
 - Cliente 7590-VHVEG: na base consta Churn = No (estava no conjunto de **treino** do modelo)
 
 **Interpretação**  
-O cliente apresenta alta probabilidade de churn (probabilidade ≈ 99,99 %). Os atributos que mais aumentam o risco – pagamento por *Electronic check*, contrato *Month‑to‑month* e ausência de *OnlineSecurity* – têm taxas de churn de 45,29 %, 42,71 % e 41,77 % respectivamente, bem acima da taxa geral de 26,54 %. Em contraste, atributos de menor risco como *InternetService = DSL* (18,96 %) e *Partner = Yes* (19,66 %) estão abaixo da média, mas não compensam os fatores de alto risco.
+O modelo prevê para o cliente **7590‑VHVEG** uma probabilidade de cancelamento de **99,99 %** (classe “Cancela”). Ele apresenta atributos de maior risco – *PaymentMethod = Electronic check* (taxa de churn 45,29 %), *Contract = Month‑to‑month* (42,71 %) e *OnlineSecurity = No* (41,77 %) – bem acima da taxa geral de churn (26,54 %). Também possui atributos de menor risco – *InternetService = DSL* (18,96 %), *Partner = Yes* (19,66 %) e *OnlineBackup = Yes* (21,53 %) – abaixo da média. Essas associações refletem padrões históricos, não causalidade direta.
 
 **Limitações**  
 A precisão do modelo é baixa (45,72 %), gerando muitos falsos positivos; as probabilidades extremas não são bem calibradas. Além disso, o cliente estava no conjunto de treino, o que pode tornar a previsão otimista.

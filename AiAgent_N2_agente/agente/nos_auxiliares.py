@@ -55,9 +55,13 @@ def _converterTextoEmNumero(texto: str):
 # Números do texto do LLM que não aparecem no contexto
 # (aceitando arredondamento e conversão proporção <-> porcentagem).
 def encontrarNumerosSemFonte(texto: str, contexto: str) -> list[str]:
+    
+    texto = re.sub(r"(?<=\d)[\s\u00a0\u202f](?=\d{3}(?!\d))", "", texto)
+
     numerosPermitidos = set()
     
     for numeroTexto in PADRAO_NUMERO.findall(contexto):
+        
         
         leituras = [_converterTextoEmNumero(numeroTexto)[0]]
 
