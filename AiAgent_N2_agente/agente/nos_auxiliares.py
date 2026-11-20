@@ -58,10 +58,22 @@ def encontrarNumerosSemFonte(texto: str, contexto: str) -> list[str]:
     numerosPermitidos = set()
     
     for numeroTexto in PADRAO_NUMERO.findall(contexto):
-        valor, _ = _converterTextoEmNumero(numeroTexto)
-        if valor is not None:
-            numerosPermitidos.update({valor, valor * 100, valor / 100})
-    
+        
+        leituras = [_converterTextoEmNumero(numeroTexto)[0]]
+
+        if "," not in numeroTexto:
+            
+            try:
+                leituras.append(float(numeroTexto))
+                
+            except ValueError:
+                pass
+        
+        for valor in leituras:
+            if valor is not None:
+                numerosPermitidos.update({valor, valor * 100, valor / 100})
+
+
     numerosSuspeitos = []
     
     for numeroTexto in PADRAO_NUMERO.findall(texto):
