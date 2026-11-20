@@ -41,11 +41,11 @@ Diagrama gerado automaticamente pelo LangGraph: [`docs/grafo_agente.mmd`](docs/g
 | Campo | Conteúdo |
 |---|---|
 | `pergunta`, `historico` | mensagem do turno e histórico da conversa |
-| `rota`, `justificativa_rota` | decisão do roteador |
-| `dados_cliente`, `customer_id`, `cliente_base` | dados de entrada (acumulados entre turnos) e cliente encontrado na base |
-| `valido`, `erros_validacao`, `campos_faltando`, `preenchidos_por_coerencia` | resultado da validação |
-| `resultado_ferramentas`, `contexto_docs` | saídas das ferramentas e trechos recuperados do cartão/dicionário |
-| `resposta`, `guarda_acionada`, `trace` | resposta final, se a guarda descartou o texto do LLM, nós visitados |
+| `rota`, `justificativaRota` | decisão do roteador |
+| `dadosCliente`, `idCliente`, `clienteDaBase` | dados de entrada (acumulados entre turnos) e cliente encontrado na base |
+| `valido`, `errosValidacao`, `camposFaltando`, `camposPreenchidosPorCoerencia` | resultado da validação |
+| `resultadoFerramentas`, `trechosDocumentacao` | saídas das ferramentas e trechos recuperados do cartão/dicionário |
+| `resposta`, `guardaAcionada`, `nosVisitados` | resposta final, se a guarda descartou o texto do LLM, nós visitados |
 
 ### Nós e papel do LLM
 
@@ -64,12 +64,12 @@ Diagrama gerado automaticamente pelo LangGraph: [`docs/grafo_agente.mmd`](docs/g
 ### Garantias contra previsões inventadas
 1. O LLM nunca calcula nada: classe, probabilidade, taxas e métricas vêm das ferramentas ou do cartão do modelo.
 2. O cabeçalho da previsão é montado por código a partir da saída do modelo.
-3. **Guarda anti-alucinação** (`nos.numeros_sem_fonte`): todo número citado pelo LLM é comparado com os números dos resultados e da documentação (aceitando arredondamento e proporção ↔ porcentagem). Se houver número sem fonte, o texto do LLM é descartado e substituído por uma resposta determinística — o campo `guarda_acionada` registra isso.
+3. **Guarda anti-alucinação** (`nos_auxiliares.encontrarNumerosSemFonte`): todo número citado pelo LLM é comparado com os números dos resultados e da documentação (aceitando arredondamento e proporção ↔ porcentagem). Se houver número sem fonte, o texto do LLM é descartado e substituído por uma resposta determinística — o campo `guardaAcionada` registra isso.
 
 ### Elementos adicionais implementados
 - **Memória de conversa** (checkpoint `MemorySaver` por `thread_id`): correções em vários turnos e simulações "e se".
 - **RAG** sobre a documentação do dataset e do modelo.
-- **Interface Gradio** com painel mostrando rota, trace e resultados das ferramentas.
+- **Interface Gradio** com painel mostrando rota, nós visitados e resultados das ferramentas.
 
 ---
 
@@ -123,7 +123,9 @@ python scripts/exportar_grafo.py   # diagrama do grafo
 | Fora do escopo | T12–T13 | conhecimento geral, pedido de classificação de imagem |
 | Adversarial | T14 | tentativa de forçar uma probabilidade inventada |
 
-Resultados: [`testes/resultados_bateria.md`](testes/resultados_bateria.md) (gerado pela execução real; inclui a taxa de roteamento correto e a seção de análise das falhas).
+Resultados: [`testes/resultados_bateria.md`](testes/resultados_bateria.md) (gerado pela execução real; inclui a taxa de roteamento correto).
+
+Análise das falhas encontradas ao longo das execuções (causa e correção de cada uma): [`testes/analise_falhas.md`](testes/analise_falhas.md).
 
 ## 4. Logs
 Cada nó grava uma linha em `logs/execucoes.jsonl` (thread, nó, duração, entrada/saída resumidas, erros). Opcionalmente, defina `LANGSMITH_TRACING=true` e `LANGSMITH_API_KEY` no `.env` para traces no LangSmith.
@@ -137,6 +139,7 @@ Cada nó grava uma linha em `logs/execucoes.jsonl` (thread, nó, duração, entr
 
 ```
 agente/            estado, esquema/validação, ferramentas, nós, grafo, LLM, logs
+                   (*_constantes.py: constantes de cada módulo; *_auxiliares.py: funções auxiliares)
 docs/              cartão do modelo, dicionário de dados (base do RAG), grafo exportado
 Modelos/          modelo_tabular.joblib (Colab), telco_churn_features.py, métricas
 dados/            Telco Customer Churn.csv (busca por customerID e consultas)
