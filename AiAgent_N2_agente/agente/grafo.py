@@ -45,6 +45,15 @@ def construir_grafo(checkpointer=None):
 
 
 def perguntar(app, pergunta: str, thread_id: str = "padrao") -> dict:
+   
     """Executa um turno da conversa (a memória fica no checkpoint da thread)."""
-    return app.invoke({"pergunta": pergunta, "trace": []},
-                      config={"configurable": {"thread_id": thread_id}})
+   
+    return app.invoke(
+        {
+            "pergunta": pergunta, "trace": []
+        },
+        config={
+            "configurable": {
+            "thread_id": thread_id
+            }
+        })

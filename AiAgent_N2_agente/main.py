@@ -12,25 +12,40 @@ from agente.grafo import construir_grafo, perguntar
 
 
 def mostrar(estado, detalhes):
+    
     print("\n" + estado.get("resposta", "") + "\n")
+    
     if detalhes:
+    
         print(f"[rota: {estado.get('rota')} — {estado.get('justificativa_rota')}]")
+    
         print(f"[trace: {' → '.join(estado.get('trace', []))}]")
+    
         print("[ferramentas: " + json.dumps(estado.get("resultado_ferramentas", {}),
                                             ensure_ascii=False, default=str)[:800] + "]\n")
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("pergunta", nargs="*")
-    ap.add_argument("--mostrar-estado", action="store_true")
-    args = ap.parse_args()
+
+    argumentParser = argparse.ArgumentParser()
+    
+    argumentParser.add_argument("pergunta", nargs="*")
+    
+    argumentParser.add_argument("--mostrar-estado", action="store_true")
+    
+    args = argumentParser.parse_args()
+    
     app = construir_grafo()
+    
     thread = f"cli-{uuid.uuid4().hex[:8]}"
+    
     if args.pergunta:
+    
         mostrar(perguntar(app, " ".join(args.pergunta), thread), args.mostrar_estado)
         return
+    
     print("Agente de churn Telco — digite 'sair' para encerrar, 'nova' para nova conversa.")
+    
     while True:
         try:
             msg = input("você> ").strip()

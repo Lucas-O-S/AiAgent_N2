@@ -41,17 +41,23 @@ def nova_conversa():
 
 
 with gr.Blocks(title="Agente de churn — Telco") as demo:
+    
     gr.Markdown("## Agente de churn — base Telco Customer Churn\n"
                 "Previsões com o modelo salvo (Naive Bayes), consultas à base e ao cartão do modelo.")
+    
     thread = gr.State(lambda: f"web-{uuid.uuid4().hex[:8]}")
+    
     with gr.Row():
+    
         with gr.Column(scale=3):
             chat = gr.Chatbot(height=520)  # Gradio 6: formato de mensagens é o padrão
             caixa = gr.Textbox(placeholder="Pergunte algo…", label="Mensagem")
             gr.Examples(EXEMPLOS, inputs=caixa)
             gr.Button("Nova conversa").click(nova_conversa, outputs=[chat, thread, caixa])
+    
         with gr.Column(scale=2):
             painel = gr.Code(label="Estado do agente neste turno (rota, trace, ferramentas)", language="json")
+    
     caixa.submit(responder, [caixa, chat, thread], [caixa, chat, painel])
 
 if __name__ == "__main__":

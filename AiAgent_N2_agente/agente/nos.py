@@ -1,13 +1,13 @@
-"""Nós do grafo. Os que usam LLM: roteador, extrair_dados, consultar (planejamento) e responder.
-Os demais são determinísticos."""
+
+#Nós do grafo. Os que usam LLM: roteador, extrair_dados, consultar (planejamento) e responder.
+#Os demais são determinísticos.
+
 from __future__ import annotations
 
 import json
 import re
 from typing import Literal, Optional
-
 from pydantic import BaseModel, Field, field_validator
-
 from . import ferramentas as F
 from .esquema import CATEGORICAS, COLUNAS, DESCRICAO_CAMPOS, NUMERICAS, validar_cliente
 from .llm import obter_llm, llm_estruturado
@@ -17,11 +17,13 @@ from .registro import registrar_no
 
 
 class DecisaoRota(BaseModel):
+    
     rota: Literal["previsao", "consulta", "fora_escopo"] = Field(
         description="previsao = prever churn de um cliente (por customerID ou atributos), "
                     "inclusive correções/complementos de dados e perguntas 'e se'; "
                     "consulta = perguntas sobre a base Telco, estatísticas, variáveis, o modelo, "
                     "métricas ou limitações; fora_escopo = qualquer outra coisa (inclui imagens).")
+    
     justificativa: str = Field(description="Uma frase curta explicando a escolha.")
 
 
@@ -30,30 +32,51 @@ def _campo(desc):
 
 
 class DadosExtraidos(BaseModel):
-    """Campos de um cliente mencionados EXPLICITAMENTE pelo usuário. Não invente valores."""
+    #Campos de um cliente mencionados EXPLICITAMENTE pelo usuário. Não invente valores.
+    
     customer_id: Optional[str] = _campo("customerID no formato 1234-ABCDE, se citado")
+    
     novo_cliente: bool = Field(default=False, description=(
         "true se o usuário está descrevendo um cliente DIFERENTE do anterior; "
         "false se está corrigindo/complementando ou perguntando 'e se' sobre o mesmo cliente"))
+    
     gender: Optional[str] = _campo("Female ou Male")
+    
     SeniorCitizen: Optional[str] = _campo("1 se idoso, 0 se não")
+    
     Partner: Optional[str] = _campo("Yes/No")
+    
     Dependents: Optional[str] = _campo("Yes/No")
+    
     tenure: Optional[float] = _campo("meses como cliente")
+    
     PhoneService: Optional[str] = _campo("Yes/No")
+    
     MultipleLines: Optional[str] = _campo("Yes/No/No phone service")
+    
     InternetService: Optional[str] = _campo("DSL/Fiber optic/No")
+    
     OnlineSecurity: Optional[str] = _campo("Yes/No/No internet service")
+    
     OnlineBackup: Optional[str] = _campo("Yes/No/No internet service")
+    
     DeviceProtection: Optional[str] = _campo("Yes/No/No internet service")
+    
     TechSupport: Optional[str] = _campo("Yes/No/No internet service")
+    
     StreamingTV: Optional[str] = _campo("Yes/No/No internet service")
+    
     StreamingMovies: Optional[str] = _campo("Yes/No/No internet service")
+    
     Contract: Optional[str] = _campo("Month-to-month/One year/Two year")
+    
     PaperlessBilling: Optional[str] = _campo("Yes/No")
+    
     PaymentMethod: Optional[str] = _campo(
         "Electronic check/Mailed check/Bank transfer (automatic)/Credit card (automatic)")
+    
     MonthlyCharges: Optional[float] = _campo("cobrança mensal")
+    
     TotalCharges: Optional[float] = _campo("cobrança acumulada")
 
     @field_validator("*", mode="before")
@@ -73,12 +96,17 @@ class Filtro(BaseModel):
 
 
 class PlanoConsulta(BaseModel):
+    
     tipo: Literal["estatistica", "documentacao"] = Field(
         description="estatistica = precisa calcular algo na base; documentacao = sobre o modelo, "
                     "métricas, variáveis ou limitações (responde com o cartão do modelo)")
+    
     metrica: Optional[Literal["taxa_churn", "contagem", "media"]] = None
+    
     filtros: list[Filtro] = Field(default_factory=list)
+    
     agrupar_por: Optional[str] = None
+    
     coluna_media: Optional[str] = Field(default=None, description="tenure, MonthlyCharges ou TotalCharges")
 
 
@@ -151,12 +179,16 @@ _RE_NUM = re.compile(r"\d+(?:[.,]\d+)*")
 def _parse_num(txt: str):
     if "," in txt:
         txt = txt.replace(".", "").replace(",", ".")
+        
     elif re.fullmatch(r"\d{1,3}(\.\d{3})+", txt):
         txt = txt.replace(".", "")
+        
     try:
         val = float(txt)
+        
     except ValueError:
         return None, 0
+    
     dec = len(txt.split(".")[1]) if "." in txt else 0
     return val, dec
 
