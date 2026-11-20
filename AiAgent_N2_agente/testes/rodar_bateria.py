@@ -93,7 +93,7 @@ def executar():
         linhasMarkdown += [f"### {linha['id']} — {linha['descricao']}", f"**Entrada:** {linha['entrada']}", "",
                            f"**Trace:** {linha['trace']}", "", linha["resposta"] or f"_erro: {linha['erro']}_", ""]
     linhasMarkdown += ["## Análise das falhas", "",
-                       "_(preencher pelo grupo: para cada ❌, explicar a causa e o que foi feito)_"]
+                       "Causa e correção das falhas encontradas ao longo das execuções: [`analise_falhas.md`](analise_falhas.md)."]
     (PASTA_RAIZ / "testes" / "resultados_bateria.md").write_text("\n".join(linhasMarkdown), encoding="utf-8")
     print(f"\nRoteamento correto: {taxaRotaCorreta:.0%} | Desfecho correto: {taxaDesfechoCorreto:.0%}")
     print("Arquivos: testes/resultados_bateria.csv e testes/resultados_bateria.md")

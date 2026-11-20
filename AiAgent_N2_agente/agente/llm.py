@@ -1,7 +1,7 @@
 # Configuração do LLM. Escolha o provedor por variáveis de ambiente (arquivo .env):
 #
 #     LLM_PROVIDER = ollama | groq | openai | google
-#     LLM_MODEL    = nome do modelo (ex.: qwen2.5:7b, llama-3.3-70b-versatile, gpt-4o-mini, gemini-2.0-flash)
+#     LLM_MODEL    = nome do modelo (ex.: qwen2.5:7b, openai/gpt-oss-120b, gpt-4o-mini, gemini-2.0-flash)
 #
 # Chaves de API ficam SOMENTE no .env (que está no .gitignore): GROQ_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY.
 from __future__ import annotations
@@ -15,7 +15,7 @@ load_dotenv()
 
 MODELOS_PADRAO = {
     "ollama": "qwen2.5:7b",
-    "groq": "llama-3.3-70b-versatile",
+    "groq": "openai/gpt-oss-120b",
     "openai": "gpt-4o-mini",
     "google": "gemini-2.0-flash",
 }

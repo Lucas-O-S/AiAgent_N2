@@ -245,4 +245,4 @@ A precisão do modelo é baixa (45,72 %), gerando muitos falsos positivos; as 
 
 ## Análise das falhas
 
-_(preencher pelo grupo: para cada ❌, explicar a causa e o que foi feito)_
+Causa e correção das falhas encontradas ao longo das execuções: [`analise_falhas.md`](analise_falhas.md).
