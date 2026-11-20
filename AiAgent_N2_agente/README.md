@@ -41,11 +41,11 @@ Diagrama gerado automaticamente pelo LangGraph: [`docs/grafo_agente.mmd`](docs/g
 | Campo | Conteúdo |
 |---|---|
 | `pergunta`, `historico` | mensagem do turno e histórico da conversa |
-| `rota`, `justificativa_rota` | decisão do roteador |
-| `dados_cliente`, `customer_id`, `cliente_base` | dados de entrada (acumulados entre turnos) e cliente encontrado na base |
-| `valido`, `erros_validacao`, `campos_faltando`, `preenchidos_por_coerencia` | resultado da validação |
-| `resultado_ferramentas`, `contexto_docs` | saídas das ferramentas e trechos recuperados do cartão/dicionário |
-| `resposta`, `guarda_acionada`, `trace` | resposta final, se a guarda descartou o texto do LLM, nós visitados |
+| `rota`, `justificativaRota` | decisão do roteador |
+| `dadosCliente`, `idCliente`, `clienteDaBase` | dados de entrada (acumulados entre turnos) e cliente encontrado na base |
+| `valido`, `errosValidacao`, `camposFaltando`, `camposPreenchidosPorCoerencia` | resultado da validação |
+| `resultadoFerramentas`, `trechosDocumentacao` | saídas das ferramentas e trechos recuperados do cartão/dicionário |
+| `resposta`, `guardaAcionada`, `nosVisitados` | resposta final, se a guarda descartou o texto do LLM, nós visitados |
 
 ### Nós e papel do LLM
 
@@ -64,12 +64,12 @@ Diagrama gerado automaticamente pelo LangGraph: [`docs/grafo_agente.mmd`](docs/g
 ### Garantias contra previsões inventadas
 1. O LLM nunca calcula nada: classe, probabilidade, taxas e métricas vêm das ferramentas ou do cartão do modelo.
 2. O cabeçalho da previsão é montado por código a partir da saída do modelo.
-3. **Guarda anti-alucinação** (`nos.numeros_sem_fonte`): todo número citado pelo LLM é comparado com os números dos resultados e da documentação (aceitando arredondamento e proporção ↔ porcentagem). Se houver número sem fonte, o texto do LLM é descartado e substituído por uma resposta determinística — o campo `guarda_acionada` registra isso.
+3. **Guarda anti-alucinação** (`nos.encontrarNumerosSemFonte`): todo número citado pelo LLM é comparado com os números dos resultados e da documentação (aceitando arredondamento e proporção ↔ porcentagem). Se houver número sem fonte, o texto do LLM é descartado e substituído por uma resposta determinística — o campo `guardaAcionada` registra isso.
 
 ### Elementos adicionais implementados
 - **Memória de conversa** (checkpoint `MemorySaver` por `thread_id`): correções em vários turnos e simulações "e se".
 - **RAG** sobre a documentação do dataset e do modelo.
-- **Interface Gradio** com painel mostrando rota, trace e resultados das ferramentas.
+- **Interface Gradio** com painel mostrando rota, nós visitados e resultados das ferramentas.
 
 ---
 

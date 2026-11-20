@@ -7,9 +7,9 @@ import uuid
 
 import gradio as gr
 
-from agente.grafo import construir_grafo, perguntar
+from agente.grafo import construirGrafo, perguntar
 
-APP = construir_grafo()
+AGENTE = construirGrafo()
 
 EXEMPLOS = [
     "Qual a chance do cliente 7590-VHVEG cancelar o contrato?",
@@ -21,44 +21,47 @@ EXEMPLOS = [
 ]
 
 
-def responder(msg, historico, thread):
-    estado = perguntar(APP, msg, thread)
-    historico = historico + [{"role": "user", "content": msg},
-                             {"role": "assistant", "content": estado.get("resposta", "")}]
+def novoIdConversa() -> str:
+    return f"web-{uuid.uuid4().hex[:8]}"
+
+
+def responderMensagem(mensagem, historicoChat, idConversa):
+    estado = perguntar(AGENTE, mensagem, idConversa)
+    # "role" e "content" são as chaves exigidas pelo gr.Chatbot
+    historicoChat = historicoChat + [{"role": "user", "content": mensagem},
+                                     {"role": "assistant", "content": estado.get("resposta", "")}]
     detalhes = {
-        "rota": estado.get("rota"), "justificativa": estado.get("justificativa_rota"),
-        "trace": " → ".join(estado.get("trace", [])),
-        "dados_cliente": estado.get("dados_cliente"),
-        "erros_validacao": estado.get("erros_validacao"),
-        "resultado_ferramentas": estado.get("resultado_ferramentas"),
-        "guarda_acionada": estado.get("guarda_acionada"),
+        "rota": estado.get("rota"), "justificativa": estado.get("justificativaRota"),
+        "nosVisitados": " → ".join(estado.get("nosVisitados", [])),
+        "dadosCliente": estado.get("dadosCliente"),
+        "errosValidacao": estado.get("errosValidacao"),
+        "resultadoFerramentas": estado.get("resultadoFerramentas"),
+        "guardaAcionada": estado.get("guardaAcionada"),
     }
-    return "", historico, json.dumps(detalhes, ensure_ascii=False, indent=2, default=str)
+    return "", historicoChat, json.dumps(detalhes, ensure_ascii=False, indent=2, default=str)
 
 
-def nova_conversa():
-    return [], f"web-{uuid.uuid4().hex[:8]}", ""
+def iniciarNovaConversa():
+    return [], novoIdConversa(), ""
 
 
-with gr.Blocks(title="Agente de churn — Telco") as demo:
-    
+with gr.Blocks(title="Agente de churn — Telco") as interface:
     gr.Markdown("## Agente de churn — base Telco Customer Churn\n"
                 "Previsões com o modelo salvo (Naive Bayes), consultas à base e ao cartão do modelo.")
-    
-    thread = gr.State(lambda: f"web-{uuid.uuid4().hex[:8]}")
-    
+    idConversa = gr.State(novoIdConversa)
+
     with gr.Row():
-    
         with gr.Column(scale=3):
             chat = gr.Chatbot(height=520)  # Gradio 6: formato de mensagens é o padrão
-            caixa = gr.Textbox(placeholder="Pergunte algo…", label="Mensagem")
-            gr.Examples(EXEMPLOS, inputs=caixa)
-            gr.Button("Nova conversa").click(nova_conversa, outputs=[chat, thread, caixa])
-    
+            caixaMensagem = gr.Textbox(placeholder="Pergunte algo…", label="Mensagem")
+            gr.Examples(EXEMPLOS, inputs=caixaMensagem)
+            gr.Button("Nova conversa").click(iniciarNovaConversa, outputs=[chat, idConversa, caixaMensagem])
         with gr.Column(scale=2):
-            painel = gr.Code(label="Estado do agente neste turno (rota, trace, ferramentas)", language="json")
-    
-    caixa.submit(responder, [caixa, chat, thread], [caixa, chat, painel])
+            painelEstado = gr.Code(label="Estado do agente neste turno (rota, nós visitados, ferramentas)",
+                                   language="json")
+
+    caixaMensagem.submit(responderMensagem, [caixaMensagem, chat, idConversa],
+                         [caixaMensagem, chat, painelEstado])
 
 if __name__ == "__main__":
-    demo.launch()
+    interface.launch()

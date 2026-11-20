@@ -8,8 +8,8 @@ from __future__ import annotations
 import unicodedata
 from dataclasses import dataclass, field
 
-SIM_NAO = ["Yes", "No"]
-SERV_INTERNET = ["Yes", "No", "No internet service"]
+OPCOES_SIM_NAO = ["Yes", "No"]
+OPCOES_SERVICO_INTERNET = ["Yes", "No", "No internet service"]
 
 # Colunas na ordem em que o pipeline salvo espera receber
 COLUNAS = [
@@ -19,27 +19,28 @@ COLUNAS = [
     "PaperlessBilling", "PaymentMethod", "MonthlyCharges", "TotalCharges",
 ]
 
-CATEGORICAS = {
+# Coluna categórica -> valores aceitos no dataset
+COLUNAS_CATEGORICAS = {
     "gender": ["Female", "Male"],
-    "Partner": SIM_NAO,
-    "Dependents": SIM_NAO,
-    "PhoneService": SIM_NAO,
+    "Partner": OPCOES_SIM_NAO,
+    "Dependents": OPCOES_SIM_NAO,
+    "PhoneService": OPCOES_SIM_NAO,
     "MultipleLines": ["Yes", "No", "No phone service"],
     "InternetService": ["DSL", "Fiber optic", "No"],
-    "OnlineSecurity": SERV_INTERNET,
-    "OnlineBackup": SERV_INTERNET,
-    "DeviceProtection": SERV_INTERNET,
-    "TechSupport": SERV_INTERNET,
-    "StreamingTV": SERV_INTERNET,
-    "StreamingMovies": SERV_INTERNET,
+    "OnlineSecurity": OPCOES_SERVICO_INTERNET,
+    "OnlineBackup": OPCOES_SERVICO_INTERNET,
+    "DeviceProtection": OPCOES_SERVICO_INTERNET,
+    "TechSupport": OPCOES_SERVICO_INTERNET,
+    "StreamingTV": OPCOES_SERVICO_INTERNET,
+    "StreamingMovies": OPCOES_SERVICO_INTERNET,
     "Contract": ["Month-to-month", "One year", "Two year"],
-    "PaperlessBilling": SIM_NAO,
+    "PaperlessBilling": OPCOES_SIM_NAO,
     "PaymentMethod": ["Electronic check", "Mailed check",
                       "Bank transfer (automatic)", "Credit card (automatic)"],
 }
 
-# Faixas observadas no dataset de treino (valores fora delas = fora da distribuição)
-NUMERICAS = {
+# Coluna numérica -> tipo e faixa observada no dataset de treino (fora dela = fora da distribuição)
+FAIXAS_NUMERICAS = {
     "SeniorCitizen": {"tipo": int, "min": 0, "max": 1},
     "tenure": {"tipo": int, "min": 0, "max": 72},
     "MonthlyCharges": {"tipo": float, "min": 18.25, "max": 118.75},
@@ -72,14 +73,15 @@ DESCRICAO_CAMPOS = {
 }
 
 
-def _sem_acento(txt: str) -> str:
-    txt = unicodedata.normalize("NFKD", str(txt)).encode("ascii", "ignore").decode()
-    return " ".join(txt.lower().strip().split())
+def _normalizarTexto(texto: str) -> str:
+    """Remove acentos, passa para minúsculas e junta espaços repetidos."""
+    texto = unicodedata.normalize("NFKD", str(texto)).encode("ascii", "ignore").decode()
+    return " ".join(texto.lower().strip().split())
 
 
 # Sinônimos em português -> valor canônico do dataset (comparação sem acento/maiúsculas)
-_SIM = {"sim", "s", "yes", "y", "true", "verdadeiro", "tem", "possui", "1"}
-_NAO = {"nao", "n", "no", "false", "falso", "nao tem", "nao possui", "0"}
+_RESPOSTAS_SIM = {"sim", "s", "yes", "y", "true", "verdadeiro", "tem", "possui", "1"}
+_RESPOSTAS_NAO = {"nao", "n", "no", "false", "falso", "nao tem", "nao possui", "0"}
 SINONIMOS = {
     "gender": {"masculino": "Male", "homem": "Male", "m": "Male",
                "feminino": "Female", "mulher": "Female", "f": "Female"},
@@ -97,43 +99,45 @@ SINONIMOS = {
                       "debito automatico": "Bank transfer (automatic)",
                       "cartao": "Credit card (automatic)", "cartao de credito": "Credit card (automatic)"},
 }
-for _c in SERVICOS_INTERNET:
-    SINONIMOS[_c] = {"sem internet": "No internet service", "sem servico de internet": "No internet service"}
+for _colunaServico in SERVICOS_INTERNET:
+    SINONIMOS[_colunaServico] = {"sem internet": "No internet service",
+                                 "sem servico de internet": "No internet service"}
 
 
-def normalizar_categorica(campo: str, valor) -> str | None:
+def normalizarValorCategorico(coluna: str, valor) -> str | None:
     """Converte o valor para o rótulo canônico do dataset; None se não reconhecer."""
     if valor is None:
         return None
-    permitidos = CATEGORICAS[campo]
-    chave = _sem_acento(valor)
-    for p in permitidos:
-        if _sem_acento(p) == chave:
-            return p
-    if chave in SINONIMOS.get(campo, {}):
-        return SINONIMOS[campo][chave]
-    if "Yes" in permitidos and chave in _SIM:
+    valoresPermitidos = COLUNAS_CATEGORICAS[coluna]
+    valorNormalizado = _normalizarTexto(valor)
+    for opcao in valoresPermitidos:
+        if _normalizarTexto(opcao) == valorNormalizado:
+            return opcao
+    if valorNormalizado in SINONIMOS.get(coluna, {}):
+        return SINONIMOS[coluna][valorNormalizado]
+    if "Yes" in valoresPermitidos and valorNormalizado in _RESPOSTAS_SIM:
         return "Yes"
-    if "No" in permitidos and chave in _NAO:
+    if "No" in valoresPermitidos and valorNormalizado in _RESPOSTAS_NAO:
         return "No"
     return None
 
 
-def _para_numero(valor):
+def _converterParaNumero(valor):
+    """Aceita número, "sim/não" (1/0) e texto como "R$ 1.234,56"; None se não for numérico."""
     if isinstance(valor, bool):
         return None
     if isinstance(valor, (int, float)):
         return float(valor)
-    txt = _sem_acento(valor)
-    if txt in _SIM:
+    texto = _normalizarTexto(valor)
+    if texto in _RESPOSTAS_SIM:
         return 1.0
-    if txt in _NAO:
+    if texto in _RESPOSTAS_NAO:
         return 0.0
-    txt = txt.replace("r$", "").replace(" ", "")
-    if "," in txt:  # formato brasileiro 1.234,56
-        txt = txt.replace(".", "").replace(",", ".")
+    texto = texto.replace("r$", "").replace(" ", "")
+    if "," in texto:  # formato brasileiro 1.234,56
+        texto = texto.replace(".", "").replace(",", ".")
     try:
-        return float(txt)
+        return float(texto)
     except ValueError:
         return None
 
@@ -141,75 +145,83 @@ def _para_numero(valor):
 @dataclass
 class ResultadoValidacao:
     valido: bool
-    dados: dict = field(default_factory=dict)        # dados normalizados prontos para o modelo
-    faltando: list = field(default_factory=list)      # campos obrigatórios ausentes
-    erros: list = field(default_factory=list)         # mensagens de erro (tipo/faixa/coerência)
-    preenchidos_por_coerencia: list = field(default_factory=list)
+    dadosNormalizados: dict = field(default_factory=dict)   # dados prontos para o modelo
+    camposFaltando: list = field(default_factory=list)      # campos obrigatórios ausentes
+    erros: list = field(default_factory=list)               # mensagens de erro (tipo/faixa/coerência)
+    camposPreenchidosPorCoerencia: list = field(default_factory=list)
 
 
-def validar_cliente(dados_brutos: dict) -> ResultadoValidacao:
+def validarCliente(dadosBrutos: dict) -> ResultadoValidacao:
     """Valida colunas, tipos, faixas e coerência entre campos."""
-    dados, erros, faltando, auto = {}, [], [], []
-    brutos = {k: v for k, v in (dados_brutos or {}).items() if v not in (None, "")}
+    dadosNormalizados, erros, camposFaltando, camposPreenchidos = {}, [], [], []
+    valoresInformados = {coluna: valor for coluna, valor in (dadosBrutos or {}).items()
+                         if valor not in (None, "")}
 
     # Preenchimento por coerência (regras do próprio dataset, não é imputação estatística)
-    if normalizar_categorica("InternetService", brutos.get("InternetService")) == "No":
-        for c in SERVICOS_INTERNET:
-            if c not in brutos:
-                brutos[c] = "No internet service"
-                auto.append(c)
-    if normalizar_categorica("PhoneService", brutos.get("PhoneService")) == "No" and "MultipleLines" not in brutos:
-        brutos["MultipleLines"] = "No phone service"
-        auto.append("MultipleLines")
+    if normalizarValorCategorico("InternetService", valoresInformados.get("InternetService")) == "No":
+        for colunaServico in SERVICOS_INTERNET:
+            if colunaServico not in valoresInformados:
+                valoresInformados[colunaServico] = "No internet service"
+                camposPreenchidos.append(colunaServico)
+    if (normalizarValorCategorico("PhoneService", valoresInformados.get("PhoneService")) == "No"
+            and "MultipleLines" not in valoresInformados):
+        valoresInformados["MultipleLines"] = "No phone service"
+        camposPreenchidos.append("MultipleLines")
 
     for campo in COLUNAS:
-        if campo not in brutos:
-            faltando.append(campo)
+        if campo not in valoresInformados:
+            camposFaltando.append(campo)
             continue
-        valor = brutos[campo]
-        if campo in CATEGORICAS:
-            norm = normalizar_categorica(campo, valor)
-            if norm is None:
-                erros.append(f"{campo} = '{valor}' não é válido. Valores aceitos: {', '.join(CATEGORICAS[campo])}.")
+        valor = valoresInformados[campo]
+        if campo in COLUNAS_CATEGORICAS:
+            valorNormalizado = normalizarValorCategorico(campo, valor)
+            if valorNormalizado is None:
+                erros.append(f"{campo} = '{valor}' não é válido. "
+                             f"Valores aceitos: {', '.join(COLUNAS_CATEGORICAS[campo])}.")
             else:
-                dados[campo] = norm
+                dadosNormalizados[campo] = valorNormalizado
         else:
-            regra = NUMERICAS[campo]
-            num = _para_numero(valor)
-            if num is None:
+            faixa = FAIXAS_NUMERICAS[campo]
+            numero = _converterParaNumero(valor)
+            if numero is None:
                 erros.append(f"{campo} = '{valor}' deveria ser numérico.")
                 continue
-            if regra["tipo"] is int and abs(num - round(num)) > 1e-9:
+            if faixa["tipo"] is int and abs(numero - round(numero)) > 1e-9:
                 erros.append(f"{campo} = {valor} deveria ser um número inteiro.")
                 continue
-            if not (regra["min"] <= num <= regra["max"]):
+            if not (faixa["min"] <= numero <= faixa["max"]):
                 erros.append(f"{campo} = {valor} está fora da faixa do dataset "
-                             f"({regra['min']} a {regra['max']}).")
+                             f"({faixa['min']} a {faixa['max']}).")
                 continue
-            dados[campo] = int(round(num)) if regra["tipo"] is int else round(num, 2)
+            dadosNormalizados[campo] = int(round(numero)) if faixa["tipo"] is int else round(numero, 2)
 
     # Coerência entre campos
-    internet = dados.get("InternetService")
-    for c in SERVICOS_INTERNET:
-        v = dados.get(c)
-        if internet == "No" and v in ("Yes", "No"):
-            erros.append(f"{c} = '{v}' é incoerente com InternetService = 'No' (deveria ser 'No internet service').")
-        if internet in ("DSL", "Fiber optic") and v == "No internet service":
-            erros.append(f"{c} = 'No internet service' é incoerente com InternetService = '{internet}'.")
-    tel, linhas = dados.get("PhoneService"), dados.get("MultipleLines")
-    if tel == "No" and linhas in ("Yes", "No"):
+    tipoInternet = dadosNormalizados.get("InternetService")
+    for colunaServico in SERVICOS_INTERNET:
+        valorServico = dadosNormalizados.get(colunaServico)
+        if tipoInternet == "No" and valorServico in ("Yes", "No"):
+            erros.append(f"{colunaServico} = '{valorServico}' é incoerente com InternetService = 'No' "
+                         "(deveria ser 'No internet service').")
+        if tipoInternet in ("DSL", "Fiber optic") and valorServico == "No internet service":
+            erros.append(f"{colunaServico} = 'No internet service' é incoerente com "
+                         f"InternetService = '{tipoInternet}'.")
+    servicoTelefone = dadosNormalizados.get("PhoneService")
+    multiplasLinhas = dadosNormalizados.get("MultipleLines")
+    if servicoTelefone == "No" and multiplasLinhas in ("Yes", "No"):
         erros.append("MultipleLines deveria ser 'No phone service' quando PhoneService = 'No'.")
-    if tel == "Yes" and linhas == "No phone service":
+    if servicoTelefone == "Yes" and multiplasLinhas == "No phone service":
         erros.append("MultipleLines = 'No phone service' é incoerente com PhoneService = 'Yes'.")
-    t, m, tot = dados.get("tenure"), dados.get("MonthlyCharges"), dados.get("TotalCharges")
-    if None not in (t, m, tot):
-        if t == 0 and tot > 0:
+    meses = dadosNormalizados.get("tenure")
+    cobrancaMensal = dadosNormalizados.get("MonthlyCharges")
+    cobrancaTotal = dadosNormalizados.get("TotalCharges")
+    if None not in (meses, cobrancaMensal, cobrancaTotal):
+        if meses == 0 and cobrancaTotal > 0:
             erros.append("TotalCharges deveria ser 0 para cliente com tenure = 0 (sem fatura fechada).")
-        elif t > 0:
-            razao = tot / (m * t)
-            if not (0.5 <= razao <= 2.0):
-                erros.append(f"TotalCharges ({tot}) é incoerente com tenure × MonthlyCharges "
-                             f"({t} × {m} = {round(t * m, 2)}).")
+        elif meses > 0:
+            razaoTotalPorEsperado = cobrancaTotal / (cobrancaMensal * meses)
+            if not (0.5 <= razaoTotalPorEsperado <= 2.0):
+                erros.append(f"TotalCharges ({cobrancaTotal}) é incoerente com tenure × MonthlyCharges "
+                             f"({meses} × {cobrancaMensal} = {round(meses * cobrancaMensal, 2)}).")
 
-    valido = not erros and not faltando
-    return ResultadoValidacao(valido, dados, faltando, erros, auto)
+    valido = not erros and not camposFaltando
+    return ResultadoValidacao(valido, dadosNormalizados, camposFaltando, erros, camposPreenchidos)

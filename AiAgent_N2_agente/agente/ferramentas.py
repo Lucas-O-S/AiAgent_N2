@@ -1,10 +1,10 @@
 """Ferramentas determinísticas do agente (nenhuma usa LLM).
 
-- prever_churn: carrega o pipeline salvo (joblib) e devolve classe + probabilidade.
-- buscar_cliente: motor de busca por customerID na base Telco.
-- fatores_associados: taxas de churn históricas das categorias do cliente (interpretação).
-- consultar_base: estatísticas sobre a base (taxa de churn, contagem, média) com filtros.
-- buscar_documentacao: recuperação (RAG) por TF-IDF no cartão do modelo e no dicionário.
+- preverChurn: carrega o pipeline salvo (joblib) e devolve classe + probabilidade.
+- buscarCliente: motor de busca por customerID na base Telco.
+- calcularFatoresAssociados: taxas de churn históricas das categorias do cliente (interpretação).
+- consultarBase: estatísticas sobre a base (taxa de churn, contagem, média) com filtros.
+- buscarDocumentacao: recuperação (RAG) por TF-IDF no cartão do modelo e no dicionário.
 """
 from __future__ import annotations
 
@@ -20,24 +20,24 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
 
-from .esquema import CATEGORICAS, COLUNAS, NUMERICAS, normalizar_categorica
+from .esquema import COLUNAS, COLUNAS_CATEGORICAS, FAIXAS_NUMERICAS, normalizarValorCategorico
 
-RAIZ = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(RAIZ / "Modelos"))  # para o joblib achar telco_churn_features.DerivatedAtributes
+PASTA_RAIZ = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PASTA_RAIZ / "Modelos"))  # para o joblib achar telco_churn_features.DerivatedAtributes
 
-CAMINHO_MODELO = RAIZ / "Modelos" / "modelo_tabular.joblib"
-CAMINHO_METRICAS = RAIZ / "Modelos" / "metricas_modelo_tabular.json"
-CAMINHO_CSV = RAIZ / "dados" / "Telco Customer Churn.csv"
-PASTA_DOCS = RAIZ / "docs"
-DOCS_RAG = ["cartao_modelo.md", "dicionario_dados.md"]
+CAMINHO_MODELO = PASTA_RAIZ / "Modelos" / "modelo_tabular.joblib"
+CAMINHO_METRICAS = PASTA_RAIZ / "Modelos" / "metricas_modelo_tabular.json"
+CAMINHO_CSV = PASTA_RAIZ / "dados" / "Telco Customer Churn.csv"
+PASTA_DOCUMENTACAO = PASTA_RAIZ / "docs"
+DOCUMENTOS_RAG = ["cartao_modelo.md", "dicionario_dados.md"]
 
-ROTULOS = {0: "Não cancela", 1: "Cancela"}
+ROTULOS_CLASSE = {0: "Não cancela", 1: "Cancela"}
 
 
 # ---------------------------------------------------------------- carregamento
 
 @lru_cache(maxsize=1)
-def carregar_modelo():
+def carregarModelo():
     if not CAMINHO_MODELO.exists():
         raise FileNotFoundError(
             f"Modelo não encontrado em {CAMINHO_MODELO}.")
@@ -45,175 +45,181 @@ def carregar_modelo():
 
 
 @lru_cache(maxsize=1)
-def carregar_metricas() -> dict:
+def carregarMetricas() -> dict:
     return json.loads(CAMINHO_METRICAS.read_text(encoding="utf-8"))
 
 
 @lru_cache(maxsize=1)
-def carregar_base() -> pd.DataFrame:
+def carregarBase() -> pd.DataFrame:
     """Base com a mesma limpeza do notebook + marcação de treino/teste (mesmo split)."""
-    d = pd.read_csv(CAMINHO_CSV)
-    d["TotalCharges"] = pd.to_numeric(d["TotalCharges"], errors="coerce").fillna(0)
-    y = d["Churn"].map({"No": 0, "Yes": 1})
-    idx_treino, _ = train_test_split(d.index, test_size=0.2, random_state=42, stratify=y)
-    d["conjunto"] = "teste"
-    d.loc[idx_treino, "conjunto"] = "treino"
-    d["churn_bin"] = y
-    return d
+    base = pd.read_csv(CAMINHO_CSV)
+    base["TotalCharges"] = pd.to_numeric(base["TotalCharges"], errors="coerce").fillna(0)
+    churnBinario = base["Churn"].map({"No": 0, "Yes": 1})
+    indicesTreino, _ = train_test_split(base.index, test_size=0.2, random_state=42, stratify=churnBinario)
+    base["conjunto"] = "teste"
+    base.loc[indicesTreino, "conjunto"] = "treino"
+    base["churnBinario"] = churnBinario
+    return base
 
 
 # ---------------------------------------------------------------- ferramentas
 
-def prever_churn(dados: dict) -> dict:
+def preverChurn(dadosCliente: dict) -> dict:
     """Recebe um cliente JÁ VALIDADO e devolve a previsão do modelo salvo."""
-    modelo = carregar_modelo()
-    X = pd.DataFrame([{c: dados[c] for c in COLUNAS}])
-    proba = modelo.predict_proba(X)[0]
-    classe = int(modelo.predict(X)[0])
-    idx = list(modelo.classes_).index(1)
-    p_churn = float(proba[idx])
+    modelo = carregarModelo()
+    entradaModelo = pd.DataFrame([{coluna: dadosCliente[coluna] for coluna in COLUNAS}])
+    probabilidades = modelo.predict_proba(entradaModelo)[0]
+    classePrevista = int(modelo.predict(entradaModelo)[0])
+    indiceClasseCancela = list(modelo.classes_).index(1)
+    probabilidadeCancelar = float(probabilidades[indiceClasseCancela])
     return {
         "modelo": "Naive Bayes (GaussianNB)",
-        "classe_prevista": classe,
-        "rotulo": ROTULOS[classe],
-        "probabilidade_cancelar": round(p_churn, 4),
-        "probabilidade_nao_cancelar": round(1 - p_churn, 4),
-        "confianca": round(max(p_churn, 1 - p_churn), 4),
+        "classePrevista": classePrevista,
+        "rotulo": ROTULOS_CLASSE[classePrevista],
+        "probabilidadeCancelar": round(probabilidadeCancelar, 4),
+        "probabilidadeNaoCancelar": round(1 - probabilidadeCancelar, 4),
+        "confianca": round(max(probabilidadeCancelar, 1 - probabilidadeCancelar), 4),
     }
 
 
-_RE_ID = re.compile(r"\b\d{4}-[A-Z]{5}\b")
-
-
-def buscar_cliente(customer_id: str) -> dict | None:
+def buscarCliente(idCliente: str) -> dict | None:
     """Motor de busca: encontra o cliente pelo customerID. None se não existir."""
-    if not customer_id:
+    if not idCliente:
         return None
-    d = carregar_base()
-    linha = d[d["customerID"].str.upper() == customer_id.strip().upper()]
-    if linha.empty:
+    base = carregarBase()
+    linhasEncontradas = base[base["customerID"].str.upper() == idCliente.strip().upper()]
+    if linhasEncontradas.empty:
         return None
-    r = linha.iloc[0]
+    registro = linhasEncontradas.iloc[0]
     return {
-        "customerID": r["customerID"],
-        "dados": {c: (r[c].item() if hasattr(r[c], "item") else r[c]) for c in COLUNAS},
-        "churn_real_na_base": r["Churn"],
-        "conjunto": r["conjunto"],  # treino ou teste no split 80/20 do notebook
+        "customerID": registro["customerID"],
+        "dados": {coluna: (registro[coluna].item() if hasattr(registro[coluna], "item") else registro[coluna])
+                  for coluna in COLUNAS},
+        "churnRealNaBase": registro["Churn"],
+        "conjunto": registro["conjunto"],  # treino ou teste no split 80/20 do notebook
     }
 
 
-def fatores_associados(dados: dict, top: int = 3) -> dict:
+def calcularFatoresAssociados(dadosCliente: dict, quantidade: int = 3) -> dict:
     """Taxas de churn HISTÓRICAS (na base) das categorias que o cliente possui.
     É uma associação observada nos dados, não a explicação interna do Naive Bayes."""
-    d = carregar_base()
-    geral = float(d["churn_bin"].mean())
-    itens = []
-    for col in CATEGORICAS:
-        val = dados.get(col)
-        grupo = d[d[col] == val]
-        if len(grupo) >= 30:
-            itens.append({"atributo": col, "valor": val,
-                          "taxa_churn_grupo": round(float(grupo["churn_bin"].mean()), 4),
-                          "n_clientes": int(len(grupo))})
-    itens.sort(key=lambda x: x["taxa_churn_grupo"], reverse=True)
-    risco = [i for i in itens if i["taxa_churn_grupo"] > geral][:top]
-    protecao = sorted([i for i in itens if i["taxa_churn_grupo"] < geral],
-                      key=lambda x: x["taxa_churn_grupo"])[:top]
-    if dados.get("InternetService") == "Fiber optic":
-        g = d[(d["InternetService"] == "Fiber optic") & (d["TechSupport"] == dados.get("TechSupport"))]
-        risco_fibra = {"atributo": "fibra + TechSupport", "valor": dados.get("TechSupport"),
-                       "taxa_churn_grupo": round(float(g["churn_bin"].mean()), 4), "n_clientes": int(len(g))}
+    base = carregarBase()
+    taxaChurnGeral = float(base["churnBinario"].mean())
+    fatores = []
+    for coluna in COLUNAS_CATEGORICAS:
+        valor = dadosCliente.get(coluna)
+        clientesDoGrupo = base[base[coluna] == valor]
+        if len(clientesDoGrupo) >= 30:
+            fatores.append({"atributo": coluna, "valor": valor,
+                            "taxaChurnGrupo": round(float(clientesDoGrupo["churnBinario"].mean()), 4),
+                            "quantidadeClientes": int(len(clientesDoGrupo))})
+    fatores.sort(key=lambda fator: fator["taxaChurnGrupo"], reverse=True)
+    fatoresRisco = [fator for fator in fatores if fator["taxaChurnGrupo"] > taxaChurnGeral][:quantidade]
+    fatoresProtecao = sorted([fator for fator in fatores if fator["taxaChurnGrupo"] < taxaChurnGeral],
+                             key=lambda fator: fator["taxaChurnGrupo"])[:quantidade]
+    if dadosCliente.get("InternetService") == "Fiber optic":
+        clientesFibra = base[(base["InternetService"] == "Fiber optic")
+                             & (base["TechSupport"] == dadosCliente.get("TechSupport"))]
+        fibraSuporte = {"atributo": "fibra + TechSupport", "valor": dadosCliente.get("TechSupport"),
+                        "taxaChurnGrupo": round(float(clientesFibra["churnBinario"].mean()), 4),
+                        "quantidadeClientes": int(len(clientesFibra))}
     else:
-        risco_fibra = None
-    return {"taxa_churn_geral": round(geral, 4), "maior_risco": risco,
-            "menor_risco": protecao, "fibra_suporte": risco_fibra}
+        fibraSuporte = None
+    return {"taxaChurnGeral": round(taxaChurnGeral, 4), "maiorRisco": fatoresRisco,
+            "menorRisco": fatoresProtecao, "fibraSuporte": fibraSuporte}
 
 
-OPERADORES = {"==", "!=", ">", "<", ">=", "<="}
-METRICAS = {"taxa_churn", "contagem", "media"}
+OPERADORES_VALIDOS = {"==", "!=", ">", "<", ">=", "<="}
+METRICAS_VALIDAS = {"taxa_churn", "contagem", "media"}
 
 
-def consultar_base(metrica: str, filtros: list[dict] | None = None,
-                   agrupar_por: str | None = None, coluna_media: str | None = None) -> dict:
+def consultarBase(metrica: str, filtros: list[dict] | None = None,
+                  agruparPor: str | None = None, colunaMedia: str | None = None) -> dict:
     """Executa uma consulta estruturada na base. Valida colunas/valores antes."""
-    d = carregar_base()
-    colunas_validas = set(COLUNAS) | {"Churn"}
-    if metrica not in METRICAS:
-        return {"erro": f"Métrica '{metrica}' inválida. Use: {sorted(METRICAS)}."}
-    filtros_aplicados = []
-    for f in filtros or []:
-        col, op, val = f.get("coluna"), f.get("operador", "=="), f.get("valor")
-        if col not in colunas_validas:
-            return {"erro": f"Coluna '{col}' não existe na base."}
-        if op not in OPERADORES:
-            return {"erro": f"Operador '{op}' inválido."}
-        if col in CATEGORICAS:
-            val_n = normalizar_categorica(col, val)
-            if val_n is None:
-                return {"erro": f"Valor '{val}' inválido para {col}. Aceitos: {CATEGORICAS[col]}."}
-            val = val_n
-            if op not in ("==", "!="):
-                return {"erro": f"Operador '{op}' não se aplica à coluna categórica {col}."}
-        elif col == "Churn":
-            val = normalizar_categorica("Partner", val)  # Yes/No
-            if val is None:
+    base = carregarBase()
+    colunasValidas = set(COLUNAS) | {"Churn"}
+    if metrica not in METRICAS_VALIDAS:
+        return {"erro": f"Métrica '{metrica}' inválida. Use: {sorted(METRICAS_VALIDAS)}."}
+    filtrosAplicados = []
+    for filtro in filtros or []:
+        coluna, operador, valor = filtro.get("coluna"), filtro.get("operador", "=="), filtro.get("valor")
+        if coluna not in colunasValidas:
+            return {"erro": f"Coluna '{coluna}' não existe na base."}
+        if operador not in OPERADORES_VALIDOS:
+            return {"erro": f"Operador '{operador}' inválido."}
+        if coluna in COLUNAS_CATEGORICAS:
+            valorNormalizado = normalizarValorCategorico(coluna, valor)
+            if valorNormalizado is None:
+                return {"erro": f"Valor '{valor}' inválido para {coluna}. "
+                                f"Aceitos: {COLUNAS_CATEGORICAS[coluna]}."}
+            valor = valorNormalizado
+            if operador not in ("==", "!="):
+                return {"erro": f"Operador '{operador}' não se aplica à coluna categórica {coluna}."}
+        elif coluna == "Churn":
+            valor = normalizarValorCategorico("Partner", valor)  # Yes/No
+            if valor is None:
                 return {"erro": "Churn só aceita Yes ou No."}
         else:
             try:
-                val = float(str(val).replace(",", "."))
+                valor = float(str(valor).replace(",", "."))
             except ValueError:
-                return {"erro": f"Valor '{val}' deveria ser numérico para {col}."}
-        serie = d[col]
-        mask = {"==": serie == val, "!=": serie != val, ">": serie > val,
-                "<": serie < val, ">=": serie >= val, "<=": serie <= val}[op]
-        d = d[mask]
-        filtros_aplicados.append(f"{col} {op} {val}")
-    if d.empty:
-        return {"filtros": filtros_aplicados, "n_clientes": 0, "resultado": "nenhum cliente encontrado"}
-    if agrupar_por and agrupar_por not in colunas_validas:
-        return {"erro": f"Coluna de agrupamento '{agrupar_por}' não existe."}
+                return {"erro": f"Valor '{valor}' deveria ser numérico para {coluna}."}
+        valoresColuna = base[coluna]
+        mascara = {"==": valoresColuna == valor, "!=": valoresColuna != valor,
+                   ">": valoresColuna > valor, "<": valoresColuna < valor,
+                   ">=": valoresColuna >= valor, "<=": valoresColuna <= valor}[operador]
+        base = base[mascara]
+        filtrosAplicados.append(f"{coluna} {operador} {valor}")
+    if base.empty:
+        return {"filtros": filtrosAplicados, "quantidadeClientes": 0, "resultado": "nenhum cliente encontrado"}
+    if agruparPor and agruparPor not in colunasValidas:
+        return {"erro": f"Coluna de agrupamento '{agruparPor}' não existe."}
     if metrica == "media":
-        if coluna_media not in NUMERICAS:
-            return {"erro": f"Média só para colunas numéricas: {list(NUMERICAS)}."}
-        alvo = d[coluna_media]
+        if colunaMedia not in FAIXAS_NUMERICAS:
+            return {"erro": f"Média só para colunas numéricas: {list(FAIXAS_NUMERICAS)}."}
+        valoresAlvo = base[colunaMedia]
     else:
-        alvo = d["churn_bin"]
-    func = {"taxa_churn": "mean", "contagem": "size", "media": "mean"}[metrica]
-    if agrupar_por:
-        g = alvo.groupby(d[agrupar_por])
-        res = getattr(g, func)().round(4)
-        resultado = {str(k): (int(v) if func == "size" else float(v)) for k, v in res.items()}
-        tamanhos = {str(k): int(v) for k, v in g.size().items()}
+        valoresAlvo = base["churnBinario"]
+    agregacao = {"taxa_churn": "mean", "contagem": "size", "media": "mean"}[metrica]
+    if agruparPor:
+        grupos = valoresAlvo.groupby(base[agruparPor])
+        resultadoPorGrupo = getattr(grupos, agregacao)().round(4)
+        resultado = {str(grupo): (int(valorGrupo) if agregacao == "size" else float(valorGrupo))
+                     for grupo, valorGrupo in resultadoPorGrupo.items()}
+        quantidadeClientes = {str(grupo): int(tamanho) for grupo, tamanho in grupos.size().items()}
     else:
-        resultado = int(alvo.size) if func == "size" else round(float(getattr(alvo, func)()), 4)
-        tamanhos = int(len(d))
-    return {"metrica": metrica if metrica != "media" else f"media de {coluna_media}",
-            "filtros": filtros_aplicados, "agrupado_por": agrupar_por,
-            "resultado": resultado, "n_clientes": tamanhos}
+        resultado = (int(valoresAlvo.size) if agregacao == "size"
+                     else round(float(getattr(valoresAlvo, agregacao)()), 4))
+        quantidadeClientes = int(len(base))
+    return {"metrica": metrica if metrica != "media" else f"media de {colunaMedia}",
+            "filtros": filtrosAplicados, "agrupadoPor": agruparPor,
+            "resultado": resultado, "quantidadeClientes": quantidadeClientes}
 
 
 # ---------------------------------------------------------------- RAG
 
 @lru_cache(maxsize=1)
-def _indice_docs():
+def _construirIndiceDocumentos():
+    """Quebra os documentos em seções (## / ###) e monta o índice TF-IDF."""
     trechos = []
-    for nome in DOCS_RAG:
-        caminho = PASTA_DOCS / nome
+    for nomeArquivo in DOCUMENTOS_RAG:
+        caminho = PASTA_DOCUMENTACAO / nomeArquivo
         if not caminho.exists():
             continue
         texto = caminho.read_text(encoding="utf-8")
-        for bloco in re.split(r"\n(?=#{2,3} )", texto):
-            bloco = bloco.strip()
-            if len(bloco.splitlines()) > 1 and len(bloco) > 40:  # ignora títulos sem conteúdo
-                titulo = bloco.splitlines()[0].lstrip("# ").strip()
-                trechos.append({"fonte": nome, "secao": titulo, "texto": bloco})
-    vet = TfidfVectorizer(strip_accents="unicode", lowercase=True, sublinear_tf=True)
-    matriz = vet.fit_transform([t["texto"] for t in trechos])
-    return trechos, vet, matriz
+        for secao in re.split(r"\n(?=#{2,3} )", texto):
+            secao = secao.strip()
+            if len(secao.splitlines()) > 1 and len(secao) > 40:  # ignora títulos sem conteúdo
+                titulo = secao.splitlines()[0].lstrip("# ").strip()
+                trechos.append({"fonte": nomeArquivo, "secao": titulo, "texto": secao})
+    vetorizador = TfidfVectorizer(strip_accents="unicode", lowercase=True, sublinear_tf=True)
+    matrizTfidf = vetorizador.fit_transform([trecho["texto"] for trecho in trechos])
+    return trechos, vetorizador, matrizTfidf
 
 
-def buscar_documentacao(pergunta: str, k: int = 3, limiar: float = 0.05) -> list[dict]:
-    trechos, vet, matriz = _indice_docs()
-    sims = cosine_similarity(vet.transform([pergunta]), matriz)[0]
-    ordem = sims.argsort()[::-1][:k]
-    return [{**trechos[i], "score": round(float(sims[i]), 3)} for i in ordem if sims[i] >= limiar]
+def buscarDocumentacao(pergunta: str, quantidade: int = 3, similaridadeMinima: float = 0.05) -> list[dict]:
+    trechos, vetorizador, matrizTfidf = _construirIndiceDocumentos()
+    similaridades = cosine_similarity(vetorizador.transform([pergunta]), matrizTfidf)[0]
+    indicesMaisSimilares = similaridades.argsort()[::-1][:quantidade]
+    return [{**trechos[indice], "similaridade": round(float(similaridades[indice]), 3)}
+            for indice in indicesMaisSimilares if similaridades[indice] >= similaridadeMinima]
