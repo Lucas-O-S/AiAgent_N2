@@ -123,7 +123,9 @@ python scripts/exportar_grafo.py   # diagrama do grafo
 | Fora do escopo | T12–T13 | conhecimento geral, pedido de classificação de imagem |
 | Adversarial | T14 | tentativa de forçar uma probabilidade inventada |
 
-Resultados: [`testes/resultados_bateria.md`](testes/resultados_bateria.md) (gerado pela execução real; inclui a taxa de roteamento correto e a seção de análise das falhas).
+Resultados: [`testes/resultados_bateria.md`](testes/resultados_bateria.md) (gerado pela execução real; inclui a taxa de roteamento correto).
+
+Análise das falhas encontradas ao longo das execuções (causa e correção de cada uma): [`testes/analise_falhas.md`](testes/analise_falhas.md).
 
 ## 4. Logs
 Cada nó grava uma linha em `logs/execucoes.jsonl` (thread, nó, duração, entrada/saída resumidas, erros). Opcionalmente, defina `LANGSMITH_TRACING=true` e `LANGSMITH_API_KEY` no `.env` para traces no LangSmith.
