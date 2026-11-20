@@ -1,0 +1,33 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	roteador(roteador)
+	extrair_dados(extrair_dados)
+	validar(validar)
+	pedir_correcao(pedir_correcao)
+	prever(prever)
+	consultar(consultar)
+	recuperar_docs(recuperar_docs)
+	responder(responder)
+	fora_escopo(fora_escopo)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> roteador;
+	consultar --> recuperar_docs;
+	extrair_dados --> validar;
+	prever --> recuperar_docs;
+	recuperar_docs --> responder;
+	roteador -.-> consultar;
+	roteador -.-> extrair_dados;
+	roteador -.-> fora_escopo;
+	validar -.-> pedir_correcao;
+	validar -.-> prever;
+	fora_escopo --> __end__;
+	pedir_correcao --> __end__;
+	responder --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc

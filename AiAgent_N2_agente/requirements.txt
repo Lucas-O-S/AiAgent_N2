@@ -1,0 +1,15 @@
+# Python 3.11+
+# scikit-learn fixado: o modelo .joblib foi salvo no Colab com a 1.6.1 e só abre nessa versão
+scikit-learn==1.6.1
+pandas>=2.2
+numpy>=1.26
+joblib>=1.4
+pydantic>=2.7
+langgraph>=1.0
+langchain-core>=1.0
+langchain-ollama>=1.0
+langchain-openai>=1.0
+langchain-google-genai>=4.0
+python-dotenv>=1.0
+gradio>=5.0
+pytest>=8.0
