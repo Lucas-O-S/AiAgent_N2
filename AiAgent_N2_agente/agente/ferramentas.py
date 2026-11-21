@@ -30,11 +30,14 @@ from .ferramentas_constantes import (AGREGACAO_POR_METRICA, CAMINHO_CSV, CAMINHO
 
 @lru_cache(maxsize=1)
 def carregarModelo():
+   
     if not CAMINHO_MODELO.exists():
         raise FileNotFoundError(f"Modelo não encontrado em {CAMINHO_MODELO}.")
+   
     # o pipeline salvo referencia telco_churn_features.DerivatedAtributes, que está na pasta Modelos
     if str(PASTA_MODELOS) not in sys.path:
         sys.path.insert(0, str(PASTA_MODELOS))
+   
     return joblib.load(CAMINHO_MODELO)
 
 
@@ -70,11 +73,17 @@ def carregarBase() -> pd.DataFrame:
 
 # Recebe um cliente JÁ VALIDADO e devolve a previsão do modelo salvo.
 def preverChurn(dadosCliente: dict) -> dict:
+    
     modelo = carregarModelo()
+    
     entradaModelo = pd.DataFrame([{coluna: dadosCliente[coluna] for coluna in COLUNAS}])
+    
     probabilidades = modelo.predict_proba(entradaModelo)[0]
+    
     classePrevista = int(modelo.predict(entradaModelo)[0])
+    
     probabilidadeCancelar = float(probabilidades[list(modelo.classes_).index(1)])
+    
     return {
         "modelo": NOME_MODELO,
         "classePrevista": classePrevista,

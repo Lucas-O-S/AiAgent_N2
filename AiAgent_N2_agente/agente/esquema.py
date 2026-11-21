@@ -36,17 +36,22 @@ def validarCliente(dadosBrutos: dict) -> ResultadoValidacao:
    
     valoresInformados = {coluna: valor for coluna, valor in (dadosBrutos or {}).items()
                          if valor not in (None, "")}
+    
     camposPreenchidos = _preencherPorCoerencia(valoresInformados)
 
     dadosNormalizados, camposFaltando, erros = {}, [], []
     
     for campo in COLUNAS:
+        
         if campo not in valoresInformados:
             camposFaltando.append(campo)
             continue
+        
         valorNormalizado, erro = _validarCampo(campo, valoresInformados[campo])
+        
         if erro:
             erros.append(erro)
+        
         else:
             dadosNormalizados[campo] = valorNormalizado
 
