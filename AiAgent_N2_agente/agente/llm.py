@@ -32,28 +32,41 @@ def obterNomeModelo() -> str:
 @lru_cache(maxsize=1)
 def obterLlm():
     provedor, nomeModelo = obterProvedor(), obterNomeModelo()
-    if provedor == "ollama":
-        from langchain_ollama import ChatOllama
-        return ChatOllama(model=nomeModelo, temperature=0,
-                          base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"))
-    if provedor == "groq":
-        from langchain_openai import ChatOpenAI
-        return ChatOpenAI(model=nomeModelo, temperature=0, api_key=os.environ["GROQ_API_KEY"],
-                          base_url="https://api.groq.com/openai/v1")
-    if provedor == "openai":
-        from langchain_openai import ChatOpenAI
-        return ChatOpenAI(model=nomeModelo, temperature=0)
-    if provedor == "google":
-        from langchain_google_genai import ChatGoogleGenerativeAI
-        return ChatGoogleGenerativeAI(model=nomeModelo, temperature=0)
-    raise ValueError(f"LLM_PROVIDER desconhecido: {provedor}")
+
+    match provedor:
+        case "ollama":
+            from langchain_ollama import ChatOllama
+            return ChatOllama(model=nomeModelo, temperature=0,
+                              base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"))
+            
+        case "groq":
+            from langchain_openai import ChatOpenAI
+            return ChatOpenAI(model=nomeModelo, temperature=0, api_key=os.environ["GROQ_API_KEY"],
+                              base_url="https://api.groq.com/openai/v1")
+            
+        case "openai":
+            from langchain_openai import ChatOpenAI
+            return ChatOpenAI(model=nomeModelo, temperature=0)
+        
+        case "google":
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            return ChatGoogleGenerativeAI(model=nomeModelo, temperature=0)
+        
+        case _:
+            raise ValueError(f"LLM_PROVIDER desconhecido: {provedor}")
 
 
 # LLM que responde obrigatoriamente no formato do schema Pydantic.
 def obterLlmEstruturado(esquemaSaida):
-    metodoSaida = {"ollama": "json_schema", "groq": "function_calling",
-                   "openai": "function_calling"}.get(obterProvedor())
+    metodoSaida = {
+        "ollama": "json_schema", 
+        "groq": "function_calling",
+        "openai": "function_calling"
+    }.get(obterProvedor())
+    
     llm = obterLlm()
+    
     if metodoSaida:
         return llm.with_structured_output(esquemaSaida, method=metodoSaida)
+    
     return llm.with_structured_output(esquemaSaida)

@@ -33,11 +33,13 @@ def normalizarSimNao(valor) -> str | None:
 
 # Valida colunas, tipos, faixas e coerência entre campos.
 def validarCliente(dadosBrutos: dict) -> ResultadoValidacao:
+   
     valoresInformados = {coluna: valor for coluna, valor in (dadosBrutos or {}).items()
                          if valor not in (None, "")}
     camposPreenchidos = _preencherPorCoerencia(valoresInformados)
 
     dadosNormalizados, camposFaltando, erros = {}, [], []
+    
     for campo in COLUNAS:
         if campo not in valoresInformados:
             camposFaltando.append(campo)
@@ -49,7 +51,9 @@ def validarCliente(dadosBrutos: dict) -> ResultadoValidacao:
             dadosNormalizados[campo] = valorNormalizado
 
     erros += _verificarCoerenciaEntreCampos(dadosNormalizados)
+    
     valido = not erros and not camposFaltando
+    
     return ResultadoValidacao(valido, dadosNormalizados, camposFaltando, erros, camposPreenchidos)
 
 

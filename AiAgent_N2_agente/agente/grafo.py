@@ -34,21 +34,33 @@ def _escolherNoAposValidacao(estado) -> str:
 
 
 def construirGrafo(memoria=None):
+    
     grafo = StateGraph(EstadoAgente)
+    
     for nomeNo, funcaoNo in NOS_DO_GRAFO.items():
         grafo.add_node(nomeNo, registrarNo(nomeNo)(funcaoNo))
 
     grafo.add_edge(START, NO_INICIAL)
+    
     grafo.add_conditional_edges(NO_INICIAL, _escolherNoAposRoteador,
                                 ["extrair_dados", "consultar", "fora_escopo"])
+    
     grafo.add_edge("extrair_dados", "validar")
+    
     grafo.add_conditional_edges("validar", _escolherNoAposValidacao, ["prever", "pedir_correcao"])
+    
     grafo.add_edge("prever", "recuperar_docs")
+    
     grafo.add_edge("consultar", "recuperar_docs")
+    
     grafo.add_edge("recuperar_docs", "responder")
+    
     grafo.add_edge("responder", END)
+    
     grafo.add_edge("pedir_correcao", END)
+    
     grafo.add_edge("fora_escopo", END)
+    
     return grafo.compile(checkpointer=memoria if memoria is not None else MemorySaver())
 
 
@@ -59,6 +71,7 @@ def novoIdConversa(prefixo: str) -> str:
 
 # Executa um turno da conversa (a memória fica no checkpoint da conversa).
 def perguntar(agente, pergunta: str, idConversa: str = "padrao") -> dict:
+    
     return agente.invoke(
         {"pergunta": pergunta, "nosVisitados": []},
         config={"configurable": {"thread_id": idConversa}},  # "thread_id" é a chave exigida pelo LangGraph

@@ -14,12 +14,15 @@ NO_INICIAL = "roteador"
 def _acumularNosDoTurno(nosAtuais: list, nosNovos: list) -> list:
     if nosNovos and nosNovos[0] == NO_INICIAL:
         return list(nosNovos)
+    
     return (nosAtuais or []) + (nosNovos or [])
 
 
 class EstadoAgente(TypedDict, total=False):
+    
     # entrada do turno
     pergunta: str                       # mensagem do usuário neste turno
+    
     historico: Annotated[list, operator.add]   # [{"papel": ..., "texto": ...}] (memória da conversa)
 
     # roteamento
